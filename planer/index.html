@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8"><title>Planer produkcji</title><meta name="description" content="Planer produkcji: graficzne planowanie produkcji w czasie i przestrzeni (DXF, harmonogram MS Project, eksport PDF)">
+<style>
+:root{--bg:#e8ecee;--pan:#f6f7f8;--ink:#1c2a35;--mut:#66737d;--line:#c5ced4;--acc:#0b6e8a;--bad:#c62f2f}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font:14px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+#app{display:grid;grid-template-columns:330px 1fr;grid-template-rows:1fr 64px;height:100%}
+aside{grid-row:1/3;background:var(--pan);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.tools{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px;border-bottom:1px solid var(--line)}
+button{font:inherit;padding:7px 10px;border:1px solid var(--line);background:#fff;border-radius:4px;cursor:pointer;color:var(--ink);text-align:left}
+button:hover{border-color:var(--acc)}button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+#list{overflow:auto;flex:1;padding:8px 12px}
+.el{border:1px solid var(--line);border-left:6px solid;background:#fff;border-radius:4px;padding:8px;margin-bottom:8px}
+.el.sel{box-shadow:0 0 0 2px var(--acc)}.el b{display:block;margin-bottom:4px}
+.row{display:flex;gap:6px;align-items:center;margin-top:4px}.row label{color:var(--mut);width:58px;flex:none}
+.chks{display:flex;flex-wrap:wrap;gap:4px 14px;flex:1}.row label.ck{width:auto;flex:none;display:inline-flex;align-items:center;gap:5px;color:var(--ink);cursor:pointer}.row input[type=text]{font:inherit;padding:3px;border:1px solid var(--line);border-radius:3px;min-width:0;width:0;flex:1}.row span{color:var(--mut)}.hh{margin-top:8px;color:var(--mut);font-size:12px}.hl{display:flex;gap:6px;align-items:center;margin-top:4px}.hl span{flex:1;font-size:12px;color:var(--mut)}.hl input[type=date]{flex:none;width:132px}.hl button{padding:2px 8px}
+input[type=date]{font:inherit;padding:3px;border:1px solid var(--line);border-radius:3px;flex:1}
+.el button{padding:3px 8px}.msg{padding:8px 12px;color:var(--mut);border-top:1px solid var(--line);min-height:52px}
+main{position:relative;min-height:0}canvas{width:100%;height:100%;display:block;cursor:grab}
+footer{display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--pan);border-top:1px solid var(--line)}
+#ow{position:absolute;top:12px;right:12px;width:290px;max-height:62%;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#ow[hidden]{display:none}#oa{display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--line)}#oa button{flex:1;font-size:12px;text-align:center;padding:5px 6px}#oa button.on{background:var(--acc);border-color:var(--acc);color:#fff}#oh{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 12px;border-bottom:1px solid var(--line);cursor:move;font-weight:600;user-select:none}
+#oh button{padding:1px 8px;text-align:center}#ob{overflow:auto;padding:8px}
+.tools button{font-size:13px}#sl{flex:1}#dd{font-size:15px}
+</style><style id="ui2">
+#app{grid-template-columns:330px 1fr;grid-template-rows:auto 1fr 60px}
+#tb{grid-area:1/1/2/3;display:flex;gap:4px;align-items:stretch;padding:8px 12px;background:var(--pan);border-bottom:1px solid var(--line);overflow-x:auto}
+aside{grid-area:2/1/4/2}main{grid-area:2/2/3/3}footer{grid-area:3/2/4/3}
+.sq{flex:none;width:66px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;text-align:center;font-size:11px;line-height:1.1;border-radius:6px}
+.sq svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sq:disabled{opacity:.4;cursor:not-allowed}.sq.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.sep{flex:none;width:1px;background:var(--line);margin:2px 6px}
+.lh{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+.lh h2{margin:0;font-size:14px}
+.fl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--mut);font-size:12px}
+.fl input[type=date]{flex:1;min-width:112px}
+.emp{color:var(--mut);margin:4px 0}
+.er{border:1px solid var(--line);border-left:6px solid;background:#fff;border-radius:4px;margin-bottom:6px}
+.er.sel{box-shadow:0 0 0 2px var(--acc)}
+.eh{display:flex;align-items:center;gap:8px;padding:7px 8px;cursor:pointer}
+.eh .tx{flex:1;min-width:0}.eh b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eh small{color:var(--mut)}
+.live{flex:none;width:8px;height:8px;border-radius:50%;background:#2e9d5b}
+.ex{padding:2px 9px;text-align:center}
+.rn{font:inherit;font-weight:700;width:100%;padding:1px 4px;border:1px solid var(--acc);border-radius:3px;box-sizing:border-box}
+.row .b5{flex:none;padding:3px 6px;white-space:nowrap}
+.row.rb{flex-wrap:wrap}.row.rb button{flex:none;white-space:nowrap}
+.el .sqs,.er .sqs{width:30px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}.sqs svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}.el .sqs.on,.er .sqs.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.ed{padding:2px 8px 8px;border-top:1px solid var(--line)}
+.dn{display:flex;align-items:center;gap:6px}
+.ar{width:34px;text-align:center;font-size:18px;line-height:1;padding:4px 0}
+#dd{font-size:15px;padding:4px}#wd{color:var(--mut);min-width:84px}
+#kw{position:absolute;top:12px;left:12px;width:350px;max-height:70%;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#kw[hidden]{display:none}#kh{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 12px;border-bottom:1px solid var(--line);cursor:move;font-weight:600;user-select:none}
+#kh button{padding:1px 8px;text-align:center}#kb{overflow:auto;padding:8px}
+.kr{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-left:5px solid var(--bad);background:#fff;border-radius:4px;padding:6px 8px;margin-bottom:6px}
+.kr.w{border-left-color:#d98a00}.kr .tx{flex:1;min-width:0}.kr b{display:block}.kr small{color:var(--mut)}.kn{color:var(--mut);margin:0 0 8px;font-size:12px}
+.sw{flex:none;width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.25);display:inline-block}
+.el select,#ot select{flex:1;min-width:0;font:inherit;padding:3px;border:1px solid var(--line);border-radius:3px;background:#fff}
+#ot{padding:8px;border-bottom:1px solid var(--line)}
+#tb [hidden]{display:none!important}
+#dw{position:fixed;top:90px;left:50%;transform:translateX(-50%);z-index:21;width:350px;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#dw[hidden]{display:none}#dwh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}
+#dwh button{padding:1px 8px;text-align:center}#dwb{padding:6px 12px 10px}#dwb .row label{width:80px}#dwb .row[hidden]{display:none}#dwf{padding:8px 12px;border-top:1px solid var(--line)}
+#qd{position:fixed;top:110px;left:50%;transform:translateX(-50%);z-index:22;width:370px;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#iw{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:23;width:min(780px,94vw);max-height:84vh;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.28)}
+#iw[hidden]{display:none}#iwh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}#iwh button{padding:1px 8px;text-align:center}
+#iws{padding:8px 12px;color:var(--mut)}#iwb{overflow:auto;padding:0 12px 8px}#iwf{display:flex;gap:8px;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--line)}
+#iwb table{width:100%;border-collapse:collapse;font-size:13px}#iwb th,#iwb td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+#iwb th{position:sticky;top:0;background:var(--pan)}#iwb tr.off td{color:var(--mut);text-decoration:line-through}#iwb ul{margin:6px 0 0 18px;padding:0;font-size:12px}
+#iwo:disabled{opacity:.5;cursor:not-allowed}
+#rw{position:fixed;top:78px;left:12px;z-index:20;width:460px;max-height:70vh;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#xw{position:fixed;top:100px;right:20px;z-index:18;width:380px;max-height:72vh;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#xw[hidden]{display:none}#xwh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}#xwh button{padding:1px 8px;text-align:center}#xwb{overflow:auto;padding:8px 12px}
+#rw[hidden]{display:none}#rwh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}#rwh button{padding:1px 8px;text-align:center}
+#rwb{overflow:auto;padding:4px 12px}#rwf{padding:8px 12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}#rwf span{color:var(--mut);font-size:12px}
+.rr{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}.rr:last-child{border-bottom:0}.rr .tx{flex:1;min-width:0}.rr b{display:block}
+.rr small{display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rr .rn2{flex:none;width:20px;text-align:center;color:var(--mut);font-weight:600}
+.rr.miss b{text-decoration:line-through;color:var(--mut)}.rr button{padding:3px 9px}
+#qd[hidden]{display:none}
+#qd.wide{width:min(780px,94vw)}.ptw{max-height:46vh;overflow:auto;margin:8px 12px 0;border:1px solid var(--line);border-radius:4px}.pt{width:100%;border-collapse:collapse}.pt th,.pt td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;font-weight:normal}.pt th{position:sticky;top:0;background:var(--pan);color:var(--mut)}.pt input{width:100%;box-sizing:border-box}.pcv{width:120px;height:72px;background:#fff;border:1px solid var(--line);border-radius:3px;display:block}.pst{font-size:11px;color:var(--mut);margin-left:6px;white-space:nowrap}.pst.on{color:#1f7a3a}.pst.wait{color:#9a6200}
+.row.pn input{flex:1}
+.ksw{position:relative;display:inline-block;width:30px;height:16px;flex:none;cursor:pointer}.ksw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}.ksw span{position:absolute;inset:0;background:#b8c2c9;border-radius:16px;transition:.15s;pointer-events:none}.ksw span::before{content:"";position:absolute;width:12px;height:12px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}.ksw input:checked+span{background:var(--acc)}.ksw input:checked+span::before{transform:translateX(14px)}.ksw input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}#qdh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}
+#qdh button{padding:1px 8px;text-align:center}#qdb{padding:6px 12px 2px}#qdb .row label{width:100px}#qd .kn{margin:6px 12px 8px;min-height:1em}#qdf{padding:8px 12px;border-top:1px solid var(--line)}
+#lw{position:fixed;top:90px;right:12px;z-index:19;width:360px;max-height:70vh;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#cw{position:fixed;top:110px;right:34px;z-index:19;width:360px;max-height:70vh;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#cw[hidden]{display:none}#cwh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}#cwh button{padding:1px 8px;text-align:center}#cwb{overflow:auto;padding:8px}
+#lw[hidden]{display:none}#lwh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}
+#lwh button{padding:1px 8px;text-align:center}#lwb{overflow:auto;padding:8px}
+.pv{flex:none;width:56px;height:40px}.pv path{stroke:#44525c;stroke-width:1.5;fill:rgba(107,124,138,.25);vector-effect:non-scaling-stroke}
+#cal{position:fixed;bottom:68px;left:350px;z-index:18;width:300px;padding:10px;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#cal[hidden]{display:none}#calh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}#cmt{text-transform:capitalize}
+#cg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cw{text-align:center;color:var(--mut);font-size:12px;padding:2px 0}
+.cdb{padding:6px 0;text-align:center;border:1px solid transparent;background:#fff;border-radius:4px;position:relative}
+.cdb.r{background:#fbe3e3;border-color:#c62f2f;color:#8a1c1c;font-weight:600}.cdb.o{background:#fdf0d6;border-color:#d98a00;color:#7a4a00;font-weight:600}
+.cdb.r::after,.cdb.o::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:currentColor}
+.cdb.s{outline:2px solid var(--acc);outline-offset:1px}.cdb.t{text-decoration:underline}
+#clg{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;font-size:12px;color:var(--mut)}.cd{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}.cd.r{background:#c62f2f}.cd.o{background:#d98a00}
+#cf{display:flex;gap:6px}#cf button{flex:1;padding:5px 6px;font-size:12px;text-align:center}#cal .kn{margin:8px 0 0}
+#dd.bad{border-color:var(--bad);box-shadow:0 0 0 2px rgba(198,47,47,.25)}#dd.wa{border-color:#d98a00;box-shadow:0 0 0 2px rgba(217,138,0,.25)}
+.row select{flex:1;min-width:0;font:inherit;padding:3px;border:1px solid var(--line);border-radius:3px;background:#fff}
+#tw{position:fixed;top:78px;right:12px;z-index:20;width:330px;max-height:70vh;display:flex;flex-direction:column;background:var(--pan);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(28,42,53,.22)}
+#tw[hidden]{display:none}#twh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line)}
+#twh button{padding:1px 8px;text-align:center}#twb{overflow:auto;padding:4px 12px}#twf{padding:8px 12px;border-top:1px solid var(--line)}
+.tl{display:flex;align-items:center;gap:10px;padding:5px 0;cursor:pointer}
+.tl svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#ot input[type=color]{width:34px;height:24px;padding:0;border:1px solid var(--line);border-radius:3px;background:none;cursor:pointer}
+</style>
+</head><body><div id="app">
+<header id="tb"></header>
+<aside>
+ <div class="lh"><h2 id="lc">Elementy</h2>
+  <div class="fl"><span>W produkcji w okresie</span></div>
+  <div class="fl"><input type="date" id="ff" aria-label="Okres produkcji od"><span>–</span><input type="date" id="ft" aria-label="Okres produkcji do"></div>
+  <div class="fl"><button id="fd" title="Ustaw okres na dzień wybrany w kalendarzu">Dla wybranego dnia</button><button id="fc">Wyczyść filtr</button></div>
+ </div>
+ <div id="list"></div><div class="msg" id="msg">Przeciągaj elementy myszą. Kółko zmienia skalę, prawy przycisk przesuwa widok.</div>
+</aside>
+<main><canvas id="cv"></canvas><div id="ow" hidden><div id="oh"><span>Przeszkody</span><button id="ox" title="Zamknij">×</button></div><div id="oa"><button id="bL"></button><button id="bV" title="Pokazuje wierzchołki zaznaczonej przeszkody; przeciągnij wierzchołek, aby zmienić jej kształt (Shift = kąty proste). Działa także przy zablokowanym ruchu.">Edytuj wierzchołki</button></div><div id="ot"></div><div id="ob"></div></div><div id="kw" hidden><div id="kh"><span>Kolizje w całym okresie</span><span><button id="kr" title="Sprawdź ponownie">↻</button><button id="kx" title="Zamknij">×</button></span></div><div id="kb"></div></div></main>
+<footer>
+ <div class="dn"><button id="dp" class="ar" title="Poprzedni dzień (←)" aria-label="Poprzedni dzień">‹</button><input type="date" id="dd" aria-label="Dzień podglądu"><button id="dc" class="ar" title="Kalendarz z oznaczonymi kolizjami" aria-label="Kalendarz z oznaczonymi kolizjami"><svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><path d="M4 5h16v16H4zM4 10h16M9 3v4M15 3v4"/></svg></button><button id="dn" class="ar" title="Następny dzień (→)" aria-label="Następny dzień">›</button><button id="dt" title="Przejdź do dzisiejszej daty">Dziś</button><span id="wd"></span></div>
+ <label title="Domyślny minimalny odstęp między elementami oraz od ściany i przeszkód, w mm. Element może mieć własną wartość (karta elementu). Dla pary elementów obowiązuje większa z dwóch wartości." style="display:flex;gap:6px;align-items:center">Domyślny odstęp [mm]<input type="number" id="mg" min="0" step="50" value="0" style="width:84px;font:inherit;padding:3px;border:1px solid var(--line);border-radius:3px"></label></footer>
+</div><input type="file" id="fl" hidden>
+<div id="tw" hidden role="dialog" aria-label="Widoczne ikony paska"><div id="twh"><b>Widoczne ikony paska</b><button id="twx" title="Zamknij" aria-label="Zamknij">×</button></div><div id="twb"></div><div id="twf"><button id="twa">Pokaż wszystkie</button></div></div>
+<div id="dw" hidden role="dialog" aria-label="Nowy element z wymiarów gabarytowych">
+ <div id="dwh"><b>Nowy element z wymiarów</b><button id="dwx" title="Zamknij" aria-label="Zamknij">×</button></div>
+ <div id="dwb">
+  <div class="row"><label>Nazwa</label><input type="text" id="dwn" placeholder="np. Rama A"></div>
+  <div class="row"><label>Kształt</label><select id="dws" aria-label="Kształt"><option value="r">Prostokąt</option><option value="c">Okrąg</option></select></div>
+  <div class="row"><label id="dwl1">Długość</label><input type="text" inputmode="decimal" id="dw1" placeholder="np. 6000"><span>mm</span></div>
+  <div class="row" id="dwr2"><label>Szerokość</label><input type="text" inputmode="decimal" id="dw2" placeholder="np. 3000"><span>mm</span></div>
+  <div class="row"><label>Start</label><input type="date" id="dwa"></div>
+  <div class="row"><label>Koniec</label><input type="date" id="dwz"></div>
+  <p id="dwm" class="kn" style="margin:8px 0 0"></p>
+ </div>
+ <div id="dwf"><button id="dwo">Dodaj element</button></div>
+</div>
+<div id="qd" hidden role="dialog" aria-label="Okno dialogowe"><div id="qdh"><b id="qdt"></b><button id="qdx" title="Zamknij" aria-label="Zamknij">×</button></div><div id="qdb"></div><p id="qdm" class="kn"></p><div id="qdf"><button id="qdo"></button></div></div>
+<div id="cw" hidden role="dialog" aria-label="Biblioteka dźwigów"><div id="cwh"><b id="cwt">Biblioteka dźwigów</b><span><button id="cwc" title="Wgraj zarys dźwigu z pliku DXF. Punkt 0,0 rysunku będzie punktem wstawienia.">+ Dźwig z DXF</button> <button id="cwx" title="Zamknij" aria-label="Zamknij">×</button></span></div><div id="cwb"></div></div>
+<div id="lw" hidden role="dialog" aria-label="Biblioteka elementów"><div id="lwh"><b id="lwt">Biblioteka elementów</b><button id="lwx" title="Zamknij" aria-label="Zamknij">×</button></div><div id="lwb"></div></div>
+<div id="cal" hidden role="dialog" aria-label="Kalendarz z oznaczonymi kolizjami">
+ <div id="calh"><button id="cpm" class="ar" aria-label="Poprzedni miesiąc">‹</button><b id="cmt"></b><button id="cnm" class="ar" aria-label="Następny miesiąc">›</button></div>
+ <div id="cg"></div>
+ <div id="clg"><span><i class="cd r"></i>kolizja</span><span><i class="cd o"></i>poza halą lub zbyt blisko ściany</span></div>
+ <div id="cf"><button id="cpc">‹ Poprzednia kolizja</button><button id="cnc">Następna kolizja ›</button></div>
+ <p id="cinfo" class="kn"></p>
+</div>
+<div id="iw" hidden role="dialog" aria-label="Podsumowanie importu elementów"><div id="iwh"><b>Import elementów z pliku</b><button id="iwx" title="Anuluj import" aria-label="Anuluj import">×</button></div><div id="iws"></div><div id="iwb"></div><div id="iwf"><button id="iwc">Anuluj</button><button id="iwo"></button></div></div>
+<div id="rw" hidden role="dialog" aria-label="Ostatnie projekty"><div id="rwh"><b>Ostatnie projekty</b><button id="rwx" title="Zamknij" aria-label="Zamknij">×</button></div><div id="rwb"></div><div id="rwf"><span>Klawisze 1–9 i 0 otwierają projekt o danym numerze.</span><button id="rwc">Wyczyść listę</button></div></div>
+<div id="xw" hidden role="dialog" aria-label="Dźwigi na planie"><div id="xwh"><b id="xwt">Dźwigi dnia</b><button id="xwx" title="Zamknij" aria-label="Zamknij">×</button></div><label class="tl" style="padding:6px 12px 0"><input type="checkbox" id="xwa"><span>Pokaż dźwigi ze wszystkich dni</span></label><div id="xwb"></div></div>
+<script>
+const $=s=>document.querySelector(s),cv=$('#cv'),cx=cv.getContext('2d');
+const unit='mm';
+const DWG_ON=!!(window.api&&api.dwgEnabled);
+const DWG_EXP_ON=!!(window.api&&api.dwgExportEnabled);   // zapis do DWG: dwg-config.js (EXPORT_ENABLED), ustawienia.json, PLANER_DWG_EXPORT=0   // czy odczyt DWG działa, rozstrzyga main.js: dwg-config.js, ustawienia.json albo zmienna PLANER_DWG=0 (patrz DWG.md)
+const OT=[['slup','Słup','#6b7c8a'],['maszyna','Maszyna','#b5651d'],['strefa','Strefa zakazana','#c62f2f'],['inne','Inne','#8c99a3']];
+// typy przeszkód: cztery wbudowane (OT) oraz własne użytkownika (otTypes, zapisywane w projekcie)
+const allTypes=()=>OT.concat(otTypes.map(t=>[t.id,t.name,t.color]));
+const typeDef=id=>allTypes().find(t=>t[0]==(id||'inne'))||OT[3];
+const otc=o=>otCol[o.type||'inne']||typeDef(o.type)[2];
+const layerOf=id=>{const t=typeDef(id);return OT.some(z=>z[0]==t[0])?t[0].toUpperCase():(t[1].replace(/ł/gi,'l').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'TYP')};
+const IC={folder:'M3 6h7l2 2h9v11H3z',save:'M5 3h12l3 3v15H5zM8 3v5h7V3M8 21v-6h8v6',saveas:'M5 3h12l3 3v6M8 3v5h7V3M5 3v18h7M17 15v6M14 18h6',hala:'M3 21V8l9-5 9 5v13zM9 21v-6h6v6',plus:'M4 4h16v16H4zM12 8v8M8 12h8',doc:'M6 3h9l4 4v14H6zM9 12h7M9 16h7',down:'M12 3v12M7 10l5 5 5-5M4 21h16',gantt:'M4 6h9M8 12h12M6 18h10',up:'M12 15V3M7 8l5-5 5 5M4 21h16',poly:'M4 18l3-11 11 3 2 9z',lock:'M6 11h12v10H6zM8 11V7a4 4 0 018 0v4',list:'M9 6h11M9 12h11M9 18h11M4 6h1M4 12h1M4 18h1',ruler:'M3 17L17 3l4 4L7 21zM8 12l2 2M11 9l2 2M14 6l2 2',trash:'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14',fit:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',warn:'M12 3l10 18H2zM12 10v5M12 18h.01',sliders:'M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6',dim:'M3 6h18M3 4v4M21 4v4M7 11h10v9H7z',book:'M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11',sheet:'M4 4h16v16H4zM4 9h16M4 14h16M10 4v16',pdf:'M6 3h9l4 4v14H6zM15 3v4h4M9 13h6M9 17h4',crane:'M5 21h5M7.5 21V5M3 8l4.5-3L18 5M18 5v6M16 11h4',text:'M5 5h14M12 5v14M9 19h6',compose:'M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM15 15h4v4h-4z',clist:'M3 21h4M5 21V7M2 9l3-3h7M12 6v3M15 10h6M15 14h6M15 18h6',undo:'M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3',redo:'M15 14l5-5-5-5M20 9H10a6 6 0 000 12h3',history:'M3 12a9 9 0 109-9 9 9 0 00-7 3.4M3 4v4h4M12 7v5l3 2',pts:'M5 19L19 5M3.5 19a1.5 1.5 0 103 0 1.5 1.5 0 10-3 0M17.5 5a1.5 1.5 0 103 0 1.5 1.5 0 10-3 0'};
+const TB=[['bO','Otwórz','Otwórz projekt (.json)','folder'],['bRc','Ostatnie','Ostatnio używane projekty (10 ostatnich): szybkie otwarcie','history'],['bP','Zapisz','Zapisz projekt (Ctrl+S)','save'],['bA','Zapisz jako','Zapisz projekt jako… (Ctrl+Shift+S)','saveas'],['bN','Cofnij','Cofnij zmianę (Ctrl+Z)','undo'],['bJ','Ponów','Ponów cofniętą zmianę (Ctrl+Y)','redo'],0,
+ ['bH','Hala','Wczytaj plan hali (DXF'+(DWG_ON?' lub DWG':'')+')','hala'],['bKp','Złożony','Dodaj element złożony z bloków pliku DXF'+(DWG_ON?' lub DWG':'')+': każdy blok pierwszego poziomu jest osobną częścią składową','compose'],['bE','Zarysy','Dodaj zarysy elementów (DXF'+(DWG_ON?' lub DWG':'')+')','plus'],['bD','Wymiary','Dodaj element, podając wymiary gabarytowe','dim'],['bZ','Excel','Importuj elementy z arkusza Excel (.xlsx) lub pliku CSV','sheet'],['bY','Biblioteka','Biblioteka elementów: zapisane zarysy do ponownego użycia','book'],['bU','Dźwigi','Biblioteka dźwigów: zarysy z punktem wstawienia 0,0, oddzielna od biblioteki elementów','crane'],['bDz','Dźwigi dnia','Lista dźwigów na planie: dźwigi wybranego dnia (okno)','clist'],['bS','Przykład','Wstaw dane przykładowe','doc'],0,
+ ['bX','DXF dnia','Eksportuj stan wybranego dnia do DXF','down'],...(DWG_EXP_ON?[['bXd','DWG dnia','Eksportuj stan wybranego dnia do DWG (zapis eksperymentalny, R2018): ta sama zawartość co w DXF','down']]:[]),['bG','PDF','Eksportuj plan do PDF: zakres dat, każdy dzień na osobnej stronie A3 poziomo','pdf'],['bM','Eksport MSP','Eksportuj harmonogram (MS Project XML)','gantt'],['bI','Import MSP','Importuj daty z MS Project XML','up'],0,
+ ['bB','Przeszkoda','Dodaj przeszkodę (rysuj)','poly'],['bW','Lista (0)','Lista przeszkód','list'],['bR','Odl. min.','Najmniejsza odległość między elementami (kliknij dwa obiekty)','ruler'],['bQ','Punkty','Odległość między punktami na obwodzie zarysów (kliknij dwa punkty)','pts'],['bC','Usuń pomiary','Wyczyść pomiary','trash'],['bK','Kolizje','Sprawdź kolizje w całym okresie produkcji','warn'],['bTx','Teksty','Ukryj wszystkie teksty z DXF (hala, przeszkody, elementy, dźwigi)','text'],['bF','Widok','Dopasuj widok do hali','fit'],0,['bT','Pasek','Wybierz, które ikony paska są widoczne','sliders']];
+document.getElementById('tb').innerHTML=TB.map(t=>t?`<button class="sq" id="${t[0]}" title="${t[2]}" aria-label="${t[2]}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[t[3]]}"/></svg><span class="lb">${t[1]}</span></button>`:'<i class="sep"></i>').join('');
+const lab=(id,txt,tip,on)=>{const b=$('#'+id);b.querySelector('.lb').textContent=txt;b.title=tip;b.setAttribute('aria-label',tip);if(on!==undefined)b.classList.toggle('on',on)};
+const COL=['#0b6e8a','#b5651d','#5b7f2b','#8a3b8f','#c2410c','#2f5aa8'];
+let hall=[],els=[],obs=[],selO=null,mode=null,dpts=[],cur=null,meas=[],mp=null,lbl=[],cranes=[],selC=null,editV=false,hallTx=[],txHideAll=false,obsLock=true,obsLabels=true,otCol={},otNoColl={},otTypes=[],drawType='inne',V={x:60,y:600,k:.05},day=toD(new Date().toISOString().slice(0,10)),sel=null,rng=[day,day+30],uid=1;
+function toD(s){return Math.round(Date.parse(s)/864e5)}function fromD(n){return new Date(n*864e5).toISOString().slice(0,10)}
+const say=t=>$('#msg').textContent=t;
+
+// ---- DXF: odczyt (LINE, LWPOLYLINE/POLYLINE z łukami, CIRCLE, ARC, INSERT i bloki) ----
+// szerokość tekstu przy wysokości 1 (do rozciągania tekstów „aligned” i „fit” między dwoma punktami)
+const _mc=()=>{if(_mc.c===undefined){try{_mc.c=document.createElement('canvas').getContext('2d')}catch(e){_mc.c=null}}return _mc.c};
+// wysokość tekstu w DXF to wysokość wielkich liter, a nie rozmiar czcionki: rozmiar czcionki = wysokość × CAPK (Segoe UI i Arial mają wielkie litery ok. 0,7 em)
+const CAPK=1.4;
+const txAspect=s=>{const c=_mc(),n=Math.max(1,s.length)*.55;if(!c||!c.measureText)return n;c.font='100px "Segoe UI",Arial,sans-serif';const w=c.measureText(s).width;return w>0?w/100*CAPK:n};
+function parseDXF(t,opts){const L=t.split(/\r?\n/),out=[],blocks={};let e=null,pl=null,sec='',blk=null;
+ const tgt=()=>sec=='ENTITIES'?out:(sec=='BLOCKS'&&blk?blk.items:null);
+ // teksty TEXT i MTEXT: treść bez kodów formatowania, wysokość, obrót i wyrównanie względem punktu wstawienia
+ const clean=s=>s.replace(/\\U\+([0-9A-Fa-f]{4})/g,(_,x)=>String.fromCharCode(parseInt(x,16))).replace(/%%[cC]/g,'Ø').replace(/%%[dD]/g,'°').replace(/%%[pP]/g,'±').replace(/%%[uUoO]/g,'');
+ const mclean=s=>{s=s.replace(/\\\\/g,'\u0001').replace(/\\\{/g,'\u0002').replace(/\\\}/g,'\u0003').replace(/\\S([^;]*);/g,(_,f)=>f.replace(/[\^#]/g,'/')).replace(/\\[fFHCcQTWAa][^;]*;/g,'').replace(/\\P/g,'\n').replace(/\\~/g,' ').replace(/\\[LlOoKk]/g,'').replace(/[{}]/g,'');
+  return clean(s).replace(/\u0001/g,'\\').replace(/\u0002/g,'{').replace(/\u0003/g,'}')};
+ const mkText=e=>{const s=(e.t=='MTEXT'?mclean(e.pre+e.str):clean(e.str)).replace(/\n{3,}/g,'\n\n').trim();if(!s)return null;
+  let hh=e.hgt>0?e.hgt:2.5,x=e.a[0],y=e.a[1],ha=0,va=0,rot=e.rot||0,fx=1;
+  if(e.t=='MTEXT'){const k=(e.h71>=1&&e.h71<=9?e.h71:1)-1;ha=k%3;va=[3,2,1][Math.floor(k/3)];
+   rot=(e.b[0]||e.b[1])?Math.atan2(e.b[1],e.b[0])*180/Math.PI:(e.rot||0)*180/Math.PI}   // w MTEXT kod 50 jest w radianach, a wektor kierunku ma pierwszeństwo
+  else{const a=e.h72,v=e.h73;fx=e.sx>0?e.sx:1;
+   if(a==3||a==5){const dx=e.b[0]-x,dy=e.b[1]-y,L=Math.hypot(dx,dy);   // „aligned” i „fit”: tekst rozpięty między dwoma punktami
+    if(L>0){rot=Math.atan2(dy,dx)*180/Math.PI;const asp=txAspect(s.split('\n')[0]);if(a==3){hh=L/asp;fx=1}else fx=L/(asp*hh)}}
+   else if(a==4){ha=1;va=2;x=e.b[0];y=e.b[1]}
+   else{ha=(a==1||a==2)?a:0;va=(v>=0&&v<=3)?v:0;if(a||v){x=e.b[0];y=e.b[1]}}}
+  const o={tx:1,s,x,y,h:hh,rot:((rot%360)+360)%360,ha,va};if(Math.abs(fx-1)>1e-6)o.fx=fx;return o};
+ const arcPts=(x0,y0,r,a0,sw)=>{const n=Math.max(2,Math.ceil(Math.abs(sw)/(Math.PI/18))),p=[];for(let k=0;k<=n;k++){const an=a0+sw*k/n;p.push([x0+r*Math.cos(an),y0+r*Math.sin(an)])}return p};
+ // punkty pośrednie łuku między a i b opisanego współczynnikiem wybrzuszenia (bulge)
+ const bulgeSeg=(a,b,bu)=>{const dx=b[0]-a[0],dy=b[1]-a[1],c=Math.hypot(dx,dy);if(!c)return[];
+  const th=4*Math.atan(bu),hh=(c/2)/Math.tan(th/2),cx0=(a[0]+b[0])/2-dy/c*hh,cy0=(a[1]+b[1])/2+dx/c*hh,r=Math.hypot(a[0]-cx0,a[1]-cy0),a0=Math.atan2(a[1]-cy0,a[0]-cx0),
+  n=Math.max(2,Math.ceil(Math.abs(th)/(Math.PI/18))),q=[];for(let k=1;k<n;k++){const an=a0+th*k/n;q.push([cx0+r*Math.cos(an),cy0+r*Math.sin(an)])}return q};
+ const poly=(p,bg,closed)=>{const r=[],n=p.length,m=closed?n:n-1;for(let i=0;i<n;i++){r.push(p[i]);if(i<m&&bg[i])for(const q of bulgeSeg(p[i],p[(i+1)%n],bg[i]))r.push(q)}return r};
+ const fin=()=>{if(!e)return;const T=tgt();
+  if(e.t=='VERTEX'){if(pl){pl.p.push(e.a);pl.bg.push(e.bu||0)}return}
+  if(e.ps&&e.t!='VERTEX'&&e.t!='SEQEND'&&e.t!='POLYLINE')return;   // obiekty z przestrzeni papieru (układy wydruku) nie należą do rysunku
+  if(e.t=='SEQEND'){if(pl&&T&&!pl.ps)T.push({p:poly(pl.p,pl.bg,pl.c&1),c:pl.c&1});pl=null;return}
+  if(e.t=='POLYLINE'){pl=e;return}
+  if(!T)return;
+  if(e.t=='LINE')T.push({p:[e.a,e.b],c:0});
+  else if(e.t=='LWPOLYLINE')T.push({p:poly(e.p,e.bg,e.c&1),c:e.c&1});
+  else if(e.t=='CIRCLE')T.push({p:arcPts(e.a[0],e.a[1],e.r,0,2*Math.PI).slice(0,-1),c:1});
+  else if(e.t=='ARC'){let sw=(e.a1-e.a0)%360;if(sw<=0)sw+=360;T.push({p:arcPts(e.a[0],e.a[1],e.r,e.a0*Math.PI/180,sw*Math.PI/180),c:0})}
+  else if(e.t=='TEXT'||e.t=='MTEXT'){const tx=mkText(e);if(tx)T.push(tx)}
+  else if(e.t=='INSERT')T.push({ins:1,name:e.nm,pt:e.a,sx:e.sx,sy:e.sy,rot:e.rot})};
+ for(let i=0;i+1<L.length;i+=2){const c=+L[i],v=L[i+1].trim();
+  if(c==0){fin();e=null;
+   if(v=='SECTION'){e={t:'SECTION'};continue}
+   if(v=='ENDSEC'){sec='';blk=null;continue}
+   if(v=='BLOCK'){blk={name:'',base:[0,0],items:[]};e={t:'BLOCK'};continue}
+   if(v=='ENDBLK'){if(blk&&blk.name)blocks[blk.name]=blk;blk=null;continue}
+   e={t:v,p:[],bg:[],a:[0,0],b:[0,0],c:0,r:0,bu:0,a0:0,a1:0,sx:1,sy:1,rot:0,nm:'',hgt:0,str:'',pre:'',h71:0,h72:0,h73:0,ps:0};continue}
+  if(!e)continue;
+  if(c==101){e.emb=1;continue}   // „Embedded Object” (np. dane kolumn MTEXT): powtarza kody 10, 11, 40… z innymi wartościami, więc dalsze kody obiektu pomijamy
+  if(e.emb)continue;
+  if(e.t=='SECTION'){if(c==2)sec=v;continue}
+  if(e.t=='BLOCK'){if(c==2&&!blk.name)blk.name=v;else if(c==10)blk.base[0]=+v;else if(c==20)blk.base[1]=+v;continue}
+  if(c==10)e.a[0]=+v;else if(c==20){e.a[1]=+v;if(e.t=='LWPOLYLINE'){e.p.push([e.a[0],+v]);e.bg.push(0)}}
+  else if(c==11)e.b[0]=+v;else if(c==21)e.b[1]=+v;
+  else if(c==40&&(e.t=='CIRCLE'||e.t=='ARC'))e.r=+v;
+  else if(c==40&&(e.t=='TEXT'||e.t=='MTEXT'))e.hgt=+v;
+  else if(c==1&&(e.t=='TEXT'||e.t=='MTEXT'))e.str=L[i+1];else if(c==3&&e.t=='MTEXT')e.pre+=L[i+1];   // treść bez przycinania (spacje na końcach fragmentów są istotne)
+  else if(c==67)e.ps=+v==1?1:0;
+  else if(c==71)e.h71=+v;else if(c==72)e.h72=+v;else if(c==73)e.h73=+v;
+  else if(c==50){if(e.t=='ARC')e.a0=+v;else e.rot=+v}
+  else if(c==51)e.a1=+v;
+  else if(c==41)e.sx=+v;
+  else if(c==42){if(e.t=='INSERT')e.sy=+v;else if(e.t=='LWPOLYLINE'){if(e.bg.length)e.bg[e.bg.length-1]=+v}else e.bu=+v}
+  else if(c==2&&e.t=='INSERT')e.nm=v;
+  else if(c==70)e.c=+v}
+ fin();
+ // rozwinięcie wstawień bloków (także zagnieżdżonych): skala, obrót, punkt wstawienia i punkt bazowy bloku
+ const xf=(S,m)=>S.map(s=>{const r=m.rot*Math.PI/180,co=Math.cos(r),si=Math.sin(r),Pt=(x,y)=>{x=(x-m.bx)*m.sx;y=(y-m.by)*m.sy;return[x*co-y*si+m.tx,x*si+y*co+m.ty]};
+  if(s.tx){const[x,y]=Pt(s.x,s.y);const fx=(s.fx||1)*Math.abs(m.sx/m.sy),o=Object.assign({},s,{x,y,h:s.h*Math.abs(m.sy),rot:(((s.rot+m.rot)%360)+360)%360});if(Math.abs(fx-1)>1e-6)o.fx=fx;else delete o.fx;return o}
+  return{c:s.c,p:s.p.map(([x,y])=>Pt(x,y))}});
+ const expand=(items,d)=>{const r=[];for(const s of items){if(!s.ins){r.push(s);continue}const b=blocks[s.name];if(!b||d>6)continue;
+  for(const q of xf(expand(b.items,d+1),{bx:b.base[0],by:b.base[1],sx:s.sx,sy:s.sy,rot:s.rot,tx:s.pt[0],ty:s.pt[1]}))r.push(q)}return r};
+ if(opts&&opts.parts){   // elementy złożone: każdy INSERT w przestrzeni modelu = osobna część; zagnieżdżone bloki wchodzą w skład części, obiekty poza blokami są pomijane
+  const parts=[];let loose=0;
+  for(const s of out){if(!s.ins){if(!s.tx)loose++;continue}if(!blocks[s.name])continue;
+   const res=expand([s],0),sh=res.filter(q=>!q.tx),tx=res.filter(q=>q.tx).map(q=>{const o=Object.assign({},q);delete o.tx;return o});
+   if(sh.length)parts.push({name:s.name,sh,tx})}
+  return{parts,loose}}
+ const res=expand(out,0),shapes=res.filter(s=>!s.tx);shapes.texts=res.filter(s=>s.tx).map(t=>{const o=Object.assign({},t);delete o.tx;return o});return shapes}
+
+// ---- geometria ----
+function bbox(sh){let a=1e18,b=1e18,c=-1e18,d=-1e18;sh.forEach(s=>s.p.forEach(([x,y])=>{a=Math.min(a,x);b=Math.min(b,y);c=Math.max(c,x);d=Math.max(d,y)}));return[a,b,c,d]}
+// segment pozycji obowiązujący w bieżącym dniu: pozycja początkowa elementu albo ostatni wpis historii z datą <= dnia
+function seg(e){let s=e;for(const k of e.hist||[]){if(toD(k.d)<=day)s=k;else break}return s}
+function worldSh(e,sh){const g=seg(e),r=g.rot*Math.PI/180,co=Math.cos(r),si=Math.sin(r);
+ return sh.map(s=>({c:s.c,p:s.p.map(([x,y])=>[x*co-y*si+g.x,x*si+y*co+g.y])}))}
+function world(e){return worldSh(e,e.sh)}
+// element złożony: e.sh to obrys zewnętrzny całości (używany w kolizjach, odstępie, zaznaczaniu), e.parts to części ze stałym położeniem względem siebie
+const isComp=e=>Array.isArray(e.parts)&&e.parts.length>0;
+const partState=p=>day<toD(p.start)?'wait':day>toD(p.end)?'done':'on';
+const partOn=p=>partState(p)=='on';
+const exportShapes=e=>isComp(e)?e.parts.filter(partOn).flatMap(p=>worldSh(e,p.sh)):world(e);   // do DXF i PDF: tylko aktualnie aktywne części
+function recalcComp(e){if(!isComp(e))return;e.start=e.parts.reduce((m,p)=>p.start<m?p.start:m,e.parts[0].start);e.end=e.parts.reduce((m,p)=>p.end>m?p.end:m,e.parts[0].end)}
+const txCount=e=>isComp(e)?e.parts.reduce((n,p)=>n+(p.tx?p.tx.length:0),0):(e.tx?e.tx.length:0);
+const active=e=>toD(e.start)<=day&&day<=toD(e.end);
+// zarys przerywany elementów nieaktywnych w wybranym dniu: tylko gdy ich okres produkcji zaczyna się lub kończy w ciągu GHOST_DAYS dni przed lub po wyświetlanym dniu
+const GHOST_DAYS=14;
+const ghostNear=e=>{const s=toD(e.start),f=toD(e.end);return(s>=day-GHOST_DAYS&&s<=day+GHOST_DAYS)||(f>=day-GHOST_DAYS&&f<=day+GHOST_DAYS)};
+function addEl(name,shapes,x,y,s,f,texts){const b=bbox(shapes),cx_=(b[0]+b[2])/2,cy_=(b[1]+b[3])/2;
+ els.push({id:uid++,name,sh:shapes.map(q=>({c:q.c,p:q.p.map(([u,v])=>[u-cx_,v-cy_])})),x,y,rot:0,start:fromD(s),end:fromD(f),col:COL[els.length%COL.length]});
+ if(texts&&texts.length)els[els.length-1].tx=texts.map(t=>Object.assign({},t,{x:t.x-cx_,y:t.y-cy_}))}
+let margin=0;
+function segInt(a,b,c,d){const o=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);
+ const d1=o(a,b,c),d2=o(a,b,d),d3=o(c,d,a),d4=o(c,d,b);
+ return((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0))}
+function pSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
+function inPoly(p,q){let c=false;for(let i=0,j=q.length-1;i<q.length;j=i++){const a=q[i],b=q[j];if((a[1]>p[1])!=(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+const edges=S=>S.flatMap(s=>{const r=[];for(let i=0;i<s.p.length-1;i++)r.push([s.p[i],s.p[i+1]]);if(s.c&&s.p.length>2)r.push([s.p[s.p.length-1],s.p[0]]);return r});
+const near=(q,E,t)=>E.some(([a,b])=>pSeg(q,a,b)<t);
+// krawędzie przecinają się lub są bliżej niż m
+function touch(Ea,Eb,m){for(const[a,b]of Ea)for(const[c,d]of Eb){if(segInt(a,b,c,d))return true;
+ if(m>0&&Math.min(pSeg(a,c,d),pSeg(b,c,d),pSeg(c,a,b),pSeg(d,a,b))<m)return true}return false}
+// wierzchołek S leży we wnętrzu T (parzystość obejmuje otwory)
+function inside(S,T,eT){const cl=T.filter(t=>t.c&&t.p.length>2);
+ return S.some(s=>s.p.some(q=>!near(q,eT,1e-3)&&cl.reduce((n,t)=>n+inPoly(q,t.p),0)%2==1))}
+const hit=(A,B,m)=>{const ea=edges(A),eb=edges(B);return touch(ea,eb,m)||inside(B,A,ea)||inside(A,B,eb)};
+const area=p=>Math.abs(p.reduce((a,q,i)=>{const r=p[(i+1)%p.length];return a+q[0]*r[1]-r[0]*q[1]},0))/2;
+function outerOf(S){let best=null,ba=-1;S.forEach(s=>{if(s.c&&s.p.length>2){const a=area(s.p);if(a>ba){ba=a;best=s}}});return best}
+const outer=()=>outerOf(hall);
+// łączy luźne odcinki i otwarte polilinie w łańcuchy; zamknięte łańcuchy stają się pętlami
+function joinOpen(S,tol){const res=S.filter(s=>s.c),op=S.filter(s=>!s.c&&s.p.length>1).map(s=>s.p.slice()),eq=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1])<=tol;
+ while(op.length){let ch=op.pop(),grew=true;
+  while(grew){grew=false;if(ch.length>2&&eq(ch[0],ch[ch.length-1]))break;
+   for(let i=0;i<op.length;i++){const q=op[i],f=ch[0],l=ch[ch.length-1];let m=null;
+    if(eq(l,q[0]))m=ch.concat(q.slice(1));else if(eq(l,q[q.length-1]))m=ch.concat(q.slice(0,-1).reverse());
+    else if(eq(f,q[q.length-1]))m=q.slice(0,-1).concat(ch);else if(eq(f,q[0]))m=q.slice(1).reverse().concat(ch);
+    if(m){ch=m;op.splice(i,1);grew=true;break}}}
+  if(ch.length>3&&eq(ch[0],ch[ch.length-1]))res.push({c:1,p:ch.slice(0,-1)});else res.push({c:0,p:ch})}
+ return res}
+
+// ---- elementy złożone: obrys zewnętrzny całości = suma wielokątów wszystkich części (bez otworów), a gdy się nie uda, otoczka wypukła ----
+const ringArea=r=>{let a=0;for(let i=0;i<r.length;i++){const p=r[i],q=r[(i+1)%r.length];a+=p[0]*q[1]-q[0]*p[1]}return a/2};
+function convexHull(pts){
+ const P=pts.map(p=>[p[0],p[1]]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).filter((p,i,a)=>!i||p[0]!=a[i-1][0]||p[1]!=a[i-1][1]);if(P.length<3)return P;
+ const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
+ for(const p of P){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+ for(let i=P.length-1;i>=0;i--){const p=P[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+ lo.pop();up.pop();return lo.concat(up)}
+// usuwa wierzchołki leżące na prostej (po rozcinaniu krawędzi przy sumowaniu)
+function simplifyRing(r,eps){let q=r.slice(),ch=true;while(ch&&q.length>3){ch=false;for(let i=0;i<q.length;i++){const a=q[(i+q.length-1)%q.length],b=q[i],c=q[(i+1)%q.length],l=Math.hypot(c[0]-a[0],c[1]-a[1])||1;
+  if(Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/l<eps){q.splice(i,1);ch=true;break}}}return q}
+// suma wielokątów: krawędzie dzielone w miejscach przecięć, zostają tylko te leżące poza pozostałymi wielokątami, z nich składane są pętle
+function unionRings(rings0,eps){
+ const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],crs=(a,b)=>a[0]*b[1]-a[1]*b[0],dot=(a,b)=>a[0]*b[0]+a[1]*b[1];
+ const rings=[];for(const r of rings0){const q=r.filter((p,i)=>{const n=r[(i+1)%r.length];return Math.hypot(p[0]-n[0],p[1]-n[1])>eps});if(q.length<3)continue;const a=ringArea(q);if(Math.abs(a)<eps*eps*4)continue;rings.push(a<0?q.slice().reverse():q)}
+ const n=rings.length;if(!n)return[];
+ const bb=rings.map(r=>{let a=1e18,b=1e18,c=-1e18,d=-1e18;for(const p of r){a=Math.min(a,p[0]);b=Math.min(b,p[1]);c=Math.max(c,p[0]);d=Math.max(d,p[1])}return[a-eps,b-eps,c+eps,d+eps]});
+ const ov=(i,j)=>bb[i][0]<=bb[j][2]&&bb[j][0]<=bb[i][2]&&bb[i][1]<=bb[j][3]&&bb[j][1]<=bb[i][3];
+ const E=rings.map(r=>r.map((p,i)=>[p,r[(i+1)%r.length]])),kept=[];
+ for(let i=0;i<n;i++)for(const[a,b]of E[i]){
+  const r=sub(b,a),L2=dot(r,r),L=Math.sqrt(L2);if(L<eps)continue;const ts=[0,1];
+  for(let j=0;j<n;j++){if(j===i||!ov(i,j))continue;
+   for(const[c,d]of E[j]){const s=sub(d,c),den=crs(r,s),ac=sub(c,a);
+    if(Math.abs(den)>1e-12*L*Math.hypot(s[0],s[1])){const t=crs(ac,s)/den,u=crs(ac,r)/den;if(t>-1e-9&&t<1+1e-9&&u>-1e-9&&u<1+1e-9)ts.push(Math.min(1,Math.max(0,t)))}
+    else if(Math.abs(crs(ac,r))/L<eps){for(const q of[c,d]){const t=dot(sub(q,a),r)/L2;if(t>0&&t<1)ts.push(t)}}}}   // odcinki współliniowe: końce drugiego odcinka dzielą pierwszy
+  ts.sort((x,y)=>x-y);
+  for(let k=0;k<ts.length-1;k++){if((ts[k+1]-ts[k])*L<eps)continue;
+   const p=[a[0]+r[0]*ts[k],a[1]+r[1]*ts[k]],q=[a[0]+r[0]*ts[k+1],a[1]+r[1]*ts[k+1]],m=[(p[0]+q[0])/2,(p[1]+q[1])/2],dir=sub(q,p);let drop=false;
+   for(let j=0;j<n&&!drop;j++){if(j===i||!ov(i,j))continue;let onB=null;
+    for(const[c,d]of E[j])if(pSeg(m,c,d)<eps*2){onB=dot(dir,sub(d,c));break}
+    if(onB!==null){if(onB<0||(onB>0&&j<i))drop=true}   // wspólna krawędź: przeciwny kierunek = granica wewnętrzna, ten sam kierunek = zostaje jedna kopia
+    else if(inPoly(m,rings[j]))drop=true}
+   if(!drop)kept.push([p,q])}}
+ const cell=eps*4,nodes=new Map(),pts=[];
+ const nid=p=>{const cx_=Math.round(p[0]/cell),cy_=Math.round(p[1]/cell);
+  for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){const l=nodes.get((cx_+dx)+','+(cy_+dy));if(l)for(const id of l)if(Math.hypot(pts[id][0]-p[0],pts[id][1]-p[1])<eps*2)return id}
+  const id=pts.length;pts.push(p);const k=cx_+','+cy_;if(!nodes.has(k))nodes.set(k,[]);nodes.get(k).push(id);return id};
+ const segs=kept.map(([p,q])=>[nid(p),nid(q)]).filter(([a,b])=>a!==b),out=new Map();
+ segs.forEach((s,i)=>{if(!out.has(s[0]))out.set(s[0],[]);out.get(s[0]).push(i)});
+ const used=new Array(segs.length).fill(false),res=[];
+ for(let i=0;i<segs.length;i++){if(used[i])continue;
+  const ring=[segs[i][0]];let cur=i,ok=false;used[i]=true;
+  for(let g=0;g<segs.length+2;g++){
+   const e=segs[cur][1];if(e===ring[0]){ok=true;break}ring.push(e);
+   const cand=(out.get(e)||[]).filter(k=>!used[k]);if(!cand.length)break;
+   let best=cand[0];
+   if(cand.length>1){const din=sub(pts[e],pts[segs[cur][0]]);let bt=-9;for(const k of cand){const dout=sub(pts[segs[k][1]],pts[e]),t=Math.atan2(crs(din,dout),dot(din,dout));if(t>bt){bt=t;best=k}}}   // w węźle dotknięcia: najbardziej w lewo, żeby pętle się nie krzyżowały
+   used[best]=true;cur=best}
+  if(ok&&ring.length>=3){const rp=ring.map(id=>pts[id]);if(ringArea(rp)>eps*eps*4)res.push(rp)}}   // pętle o dodatnim polu to granice zewnętrzne, ujemne to otwory (pomijane)
+ return res}
+function compositeOutline(parts){
+ const all=parts.flatMap(p=>p.sh),b=bbox(all),eps=Math.max(Math.hypot(b[2]-b[0],b[3]-b[1])*1e-7,1e-3);
+ const hullOf=p=>{const h=convexHull(p.sh.flatMap(s=>s.p));return h.length>=3?[h]:[]};
+ let rings=parts.flatMap(p=>{const cl=p.sh.filter(s=>s.c&&s.p.length>=3).map(s=>s.p);return cl.length?cl:hullOf(p)}),how='suma części';
+ if(rings.reduce((n,r)=>n+r.length,0)>3000){rings=parts.flatMap(hullOf);how='suma otoczek części (bardzo złożony rysunek)'}
+ let out=[];try{out=unionRings(rings,eps)}catch(e){out=[]}
+ if(!out.length){const h=convexHull(all.flatMap(s=>s.p));if(h.length>=3){out=[h];how='otoczka wypukła'}}
+ return{shapes:out.map(r=>({c:1,p:simplifyRing(r,eps)})),how}}
+
+function prep(S){const b=bbox(S),r=joinOpen(S,Math.max(Math.max(b[2]-b[0],b[3]-b[1])*1e-4,1e-6));r.texts=S.texts||[];return r}
+// zamknięte pętle leżące wewnątrz obrysu hali (bez pętli zagnieżdżonych w innych) => przeszkody
+function splitHall(S){const o=outerOf(S);if(!o)return{hall:S,obs:[],found:false};
+ const eo=edges([o]),ok=s=>s!==o&&s.c&&s.p.length>2&&s.p.every(q=>near(q,eo,1e-3)||inPoly(q,o.p));
+ const c0=S.filter(ok);let c=c0;c=c.filter(s=>!c.some(t=>t!==s&&area(t.p)>area(s.p)&&s.p.every(q=>inPoly(q,t.p)||near(q,edges([t]),1e-3))));
+ return{hall:S.filter(s=>!c0.includes(s)),obs:c.map((s,i)=>({id:uid++,name:'Przeszkoda '+(i+1),p:s.p})),found:true}}
+const cpSeg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return[a[0]+t*dx,a[1]+t*dy]};
+// najmniejsza odległość między konturami A i B oraz najbliższe punkty
+function nearest(A,B){const ea=edges(A),eb=edges(B);let best={d:1e18};
+ const tr=(pts,E,sw)=>{for(const q of pts)for(const[a,b]of E){const c=cpSeg(q,a,b),d=Math.hypot(q[0]-c[0],q[1]-c[1]);if(d<best.d)best={d,a:sw?c:q,b:sw?q:c}}};
+ tr(A.flatMap(s=>s.p),eb,false);tr(B.flatMap(s=>s.p),ea,true);
+ const pa=A.flatMap(s=>s.p),pb=B.flatMap(s=>s.p);if(best.d>1e17&&pa.length&&pb.length)best={d:Math.hypot(pa[0][0]-pb[0][0],pa[0][1]-pb[0][1]),a:pa[0],b:pb[0]};
+ if(best.d>1e17)return null;if(hit(A,B,0))best={d:0,a:best.a,b:best.b,ov:true};return best}
+const num=s=>{const t=String(s).replace(/[\s\u00a0]/g,'').replace(',','.');return /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(t)?parseFloat(t):NaN};const norm=a=>((a%360)+360)%360;const ang=a=>String(Math.round(norm(a)*1000)/1000).replace('.',',');
+const fmt=n=>String(Math.round(n*10)/10).replace('.',',');
+const hp=k=>{const q=k.slice(2).split(',').map(Number);return{name:'punkt hali ('+fmt(q[0])+'; '+fmt(q[1])+')',pt:q}};
+const pe=k=>{const q=ppt(k);return q&&{name:'punkt na „'+q.name+'”',pt:[q.x,q.y],on:q.on}};
+const ent=k=>k[0]=='e'?els.find(e=>e.id==+k.slice(2)):k[0]=='o'?obs.find(o=>o.id==+k.slice(2)):k[0]=='h'?hp(k):k[0]=='p'?pe(k):k[0]=='c'?cranes.find(c=>c.id==+k.slice(2)):null;
+const nm=k=>(ent(k)||{}).name||'?';
+function shp(k){const x=ent(k);if(!x)return null;if(k[0]=='h')return[{c:0,p:[x.pt]}];if(k[0]=='p')return x.on?[{c:0,p:[x.pt]}]:null;if(k[0]=='o')return[{c:1,p:x.p}];if(k[0]=='c')return x.day==fromD(day)?craneWorld(x):null;return active(x)?world(x):null}
+// najbliższy wierzchołek (a w drugiej kolejności punkt na krawędzi) zarysu hali w promieniu tolPx
+function hallPt(wx,wy,tolPx){const tol=tolPx/V.k;let best=null,bd=1e18;
+ for(const s of hall)for(const q of s.p){const d=Math.hypot(q[0]-wx,q[1]-wy);if(d<bd){bd=d;best=q}}
+ if(best&&bd<=tol)return[best[0],best[1]];
+ best=null;bd=1e18;for(const[a,b]of edges(hall)){const c=cpSeg([wx,wy],a,b),d=Math.hypot(c[0]-wx,c[1]-wy);if(d<bd){bd=d;best=c}}
+ return best&&bd<=tol?best:null}
+const hk=q=>q?'h:'+q[0]+','+q[1]:null;
+function pickAt(wx,wy,force){
+ if(force)return hk(hallPt(wx,wy,15));
+ const h=[...els].reverse().find(e=>{if(!active(e))return false;const b=bbox(world(e));return wx>=b[0]&&wx<=b[2]&&wy>=b[1]&&wy<=b[3]});
+ if(h)return'e:'+h.id;const cr=[...cranes].reverse().find(c=>c.day==fromD(day)&&hitCrane(c,wx,wy));if(cr)return'c:'+cr.id;const o=[...obs].reverse().find(q=>inPoly([wx,wy],q.p));if(o)return'o:'+o.id;return hk(hallPt(wx,wy,12))}
+function pickMeas(wx,wy,shift){const k=pickAt(wx,wy,shift);
+ if(!k){mp=null;draw();return say('Kliknij element, przeszkodę, dźwig albo punkt na zarysie hali (Shift+klik wybiera zawsze punkt hali). Esc kończy mierzenie.')}
+ if(!mp){mp=k;draw();return say('Wybrano: '+nm(k)+'. Kliknij drugi obiekt lub punkt na zarysie hali.')}
+ if(k==mp)return;
+ const ka=mp;meas.push([ka,k]);mp=null;all();
+ const A=shp(ka),B=shp(k),r=nearest(A,B),c=s=>{const b=bbox(s);return[(b[0]+b[2])/2,(b[1]+b[3])/2]},ca=c(A),cb=c(B),pt=ka[0]=='h'||k[0]=='h';
+ say('Odległość „'+nm(ka)+'” ↔ „'+nm(k)+'”: '+(r&&!r.ov?fmt(r.d)+' '+unit+(pt?'':' (między najbliższymi punktami konturów)'):pt?'punkt leży wewnątrz obiektu':'obiekty nakładają się')+(pt?'':'; między środkami: '+fmt(Math.hypot(ca[0]-cb[0],ca[1]-cb[1]))+' '+unit)+'.'+hintLbl)}
+// punkt wewnątrz kształtu, najdalszy od jego krawędzi (dla wklęsłych kształtów środek prostokąta otaczającego może leżeć poza obrysem)
+const lpCache=new WeakMap();
+function labelPt(sh,key){key=key||sh;let r=lpCache.get(key);if(r)return r;
+ const cl=sh.filter(s=>s.c&&s.p.length>2),E=edges(sh);r=[0,0];
+ if(cl.length&&E.length){const b=bbox(cl),w=b[2]-b[0],hh=b[3]-b[1],N=20,
+  inS=(x,y)=>cl.reduce((n,s)=>n+inPoly([x,y],s.p),0)%2==1,
+  dist=(x,y)=>{let m=1e18;for(const[a,c]of E)m=Math.min(m,pSeg([x,y],a,c));return m};
+  const mx=(b[0]+b[2])/2,my=(b[1]+b[3])/2,eps=Math.max(w,hh)*1e-3,dm=(x,y)=>Math.hypot(x-mx,y-my);
+  let best=-1,bx=0,by=0,bm=1e18; // przy remisie wygrywa punkt bliższy środkowi
+  for(let i=0;i<=N;i++)for(let j=0;j<=N;j++){const x=b[0]+w*i/N,y=b[1]+hh*j/N;if(!inS(x,y))continue;const d=dist(x,y);if(d>best+eps||(Math.abs(d-best)<=eps&&dm(x,y)<bm)){best=d;bx=x;by=y;bm=dm(x,y)}}
+  let st=Math.max(w,hh)/N;
+  for(let it=0;it<4&&best>=0;it++){const x0=bx,y0=by;for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const x=x0+st*i/2,y=y0+st*j/2;if(!inS(x,y))continue;const d=dist(x,y);if(d>best+eps||(Math.abs(d-best)<=eps&&dm(x,y)<bm)){best=d;bx=x;by=y;bm=dm(x,y)}}st/=2}
+  if(best>=0)r=[bx,by]}
+ lpCache.set(key,r);return r}
+// Punkt na obwodzie zarysu zapamiętany względem obiektu: 'p:e<id>:<lx>,<ly>' (współrzędne lokalne elementu, więc punkt podąża za jego pozycją, obrotem i historią)
+// albo 'p:o<id>:<dx>,<dy>' (przesunięcie względem pierwszego wierzchołka przeszkody)
+function ppt(k){const a=k.slice(2).split(':'),kd=a[0][0],id=+a[0].slice(1),[lx,ly]=a[1].split(',').map(Number);
+ if(kd=='e'){const e=els.find(z=>z.id==id);if(!e)return null;const g=seg(e),r=g.rot*Math.PI/180;
+  return{x:lx*Math.cos(r)-ly*Math.sin(r)+g.x,y:lx*Math.sin(r)+ly*Math.cos(r)+g.y,on:active(e),name:e.name}}
+ if(kd=='c'){const c=cranes.find(z=>z.id==id);if(!c)return null;const r=c.rot*Math.PI/180;return{x:lx*Math.cos(r)-ly*Math.sin(r)+c.x,y:lx*Math.sin(r)+ly*Math.cos(r)+c.y,on:c.day==fromD(day),name:c.name}}
+ const o=obs.find(z=>z.id==id);return o?{x:o.p[0][0]+lx,y:o.p[0][1]+ly,on:true,name:o.name}:null}
+// najbliższy punkt obwodu (wierzchołek ma pierwszeństwo przed punktem na krawędzi) wśród aktywnych elementów, przeszkód i zarysu hali
+function perimPt(wx,wy,tolPx){const tol=tolPx/V.k;
+ const src=[...els.filter(active).map(e=>({k:'e',id:e.id,sh:world(e)})),...obs.map(o=>({k:'o',id:o.id,sh:[{c:1,p:o.p}]})),...cranes.filter(c=>c.day==fromD(day)).map(c=>({k:'c',id:c.id,sh:craneWorld(c),c})),{k:'h',sh:hall}];
+ const key=(s,pt)=>{if(s.k=='h')return'h:'+pt[0]+','+pt[1];
+  if(s.k=='o'){const o=obs.find(z=>z.id==s.id);return'p:o'+s.id+':'+(pt[0]-o.p[0][0])+','+(pt[1]-o.p[0][1])}
+  if(s.k=='c'){const c=s.c,r=c.rot*Math.PI/180,dx=pt[0]-c.x,dy=pt[1]-c.y;return'p:c'+s.id+':'+(dx*Math.cos(r)+dy*Math.sin(r))+','+(-dx*Math.sin(r)+dy*Math.cos(r))}
+  const e=els.find(z=>z.id==s.id),g=seg(e),r=g.rot*Math.PI/180,dx=pt[0]-g.x,dy=pt[1]-g.y;
+  return'p:e'+s.id+':'+(dx*Math.cos(r)+dy*Math.sin(r))+','+(-dx*Math.sin(r)+dy*Math.cos(r))};
+ let best=null,bd=1e18;
+ for(const s of src){const vs=s.sh.flatMap(sh=>sh.p);if(s.c)vs.push([s.c.x,s.c.y]);   // punkt wstawienia dźwigu też jest punktem przyciągania
+  for(const q of vs){const d=Math.hypot(q[0]-wx,q[1]-wy);if(d<bd){bd=d;best={s,pt:[q[0],q[1]]}}}}
+ if(!best||bd>tol){best=null;bd=1e18;
+  for(const s of src){for(const[a,b]of edges(s.sh)){const c=cpSeg([wx,wy],a,b),d=Math.hypot(c[0]-wx,c[1]-wy);if(d<bd){bd=d;best={s,pt:c}}}
+   if(s.c){const dd=Math.hypot(wx-s.c.x,wy-s.c.y);if(dd>0){const k=s.c.r/dd,c=[s.c.x+(wx-s.c.x)*k,s.c.y+(wy-s.c.y)*k],d=Math.hypot(c[0]-wx,c[1]-wy);if(d<bd){bd=d;best={s,pt:c}}}}}   // okrąg zasięgu dźwigu
+  if(!best||bd>tol)return null}
+ return{key:key(best.s,best.pt),pt:best.pt}}
+function pickPt(wx,wy){const q=perimPt(wx,wy,12);
+ if(!q){mp=null;draw();return say('Kliknij punkt na obwodzie elementu, przeszkody, dźwigu (zarys, punkt wstawienia lub okrąg zasięgu) albo hali (kwadracik podpowiada punkt przyciągania). Esc kończy mierzenie.')}
+ if(!mp){mp=q.key;draw();return say('Pierwszy punkt: '+nm(q.key)+'. Kliknij drugi punkt.')}
+ if(q.key==mp)return;
+ const ka=mp;meas.push([ka,q.key]);mp=null;all();
+ const a=ent(ka).pt,b=ent(q.key).pt,dx=b[0]-a[0],dy=b[1]-a[1];
+ say('Odległość między punktami ('+nm(ka)+' ↔ '+nm(q.key)+'): '+fmt(Math.hypot(dx,dy))+' '+unit+' (ΔX='+fmt(dx)+', ΔY='+fmt(dy)+' '+unit+').'+hintLbl)}
+// kliknięcie etykiety pomiaru rozwija/zwija rozbicie odległości na składowe X i Y
+const mOpen=new Set();
+const hitLabel=(sx,sy)=>{const b=[...lbl].reverse().find(q=>sx>=q.x&&sx<=q.x+q.w&&sy>=q.y&&sy<=q.y+q.h);return b?b.k:null};
+function toggleMeas(key){const[ka,kb]=key.split('|'),A=shp(ka),B=shp(kb);if(!A||!B)return;
+ const r=nearest(A,B);
+ if(mOpen.has(key)){mOpen.delete(key);draw();return say('Zwinięto rozbicie pomiaru.')}
+ if(!r||r.ov||!(r.d>0)){draw();return say('Obiekty się stykają lub nakładają, więc nie ma odległości do rozbicia na X i Y.')}
+ mOpen.add(key);draw();const dx=r.b[0]-r.a[0],dy=r.b[1]-r.a[1];
+ say('Rozbicie pomiaru ('+nm(ka)+' → '+nm(kb)+'): ΔX = '+fmt(dx)+' '+unit+', ΔY = '+fmt(dy)+' '+unit+'; odległość = '+fmt(r.d)+' '+unit+'. X rośnie w prawo, Y w górę. Kliknij etykietę ponownie, aby zwinąć.')}
+const hintLbl=' Kliknij etykietę pomiaru, aby zobaczyć rozbicie na składowe X i Y.';
+// Strefa odstępu: granica zbioru punktów oddalonych od konturu elementu o odstęp g (zaokrąglone narożniki), policzona w układzie lokalnym elementu.
+// Kandydaci: równoległe przesunięcia krawędzi i okręgi wokół wierzchołków; zostają tylko punkty poza materiałem i nie bliżej niż g od żadnej krawędzi.
+const zoneCache=new WeakMap(),gapShow=new Set();
+function zoneLocal(e,g){let m=zoneCache.get(e.sh);if(!m){m=new Map();zoneCache.set(e.sh,m)}if(m.has(g))return m.get(g);
+ const E=edges(e.sh),cl=e.sh.filter(s=>s.c&&s.p.length>2),out=[],verts=new Map();
+ const inMat=(x,y)=>cl.reduce((n,s)=>n+inPoly([x,y],s.p),0)%2==1;
+ const ok=(x,y)=>{if(inMat(x,y))return false;for(const[a,b]of E)if(pSeg([x,y],a,b)<g*.9995)return false;return true};
+ // granica między punktem spełniającym warunek a niespełniającym (bisekcja), żeby linia kończyła się dokładnie na przecięciu
+ const bis=(a,b,aok)=>{let lo=0,hi=1;for(let k=0;k<14;k++){const t=(lo+hi)/2;if(ok(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t)==aok)lo=t;else hi=t}return[a[0]+(b[0]-a[0])*lo,a[1]+(b[1]-a[1])*lo]};
+ const run=pts=>{let cur=[],pk=ok(pts[0][0],pts[0][1]);if(pk)cur.push(pts[0]);
+  for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],bk=ok(b[0],b[1]);
+   if(pk&&bk)cur.push(b);else if(pk){cur.push(bis(a,b,true));if(cur.length>1)out.push(cur);cur=[]}else if(bk)cur=[bis(a,b,false),b];pk=bk}
+  if(cur.length>1)out.push(cur)};
+ for(const[a,b]of E){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(!len)continue;const nx=-dy/len,ny=dx/len,an=Math.atan2(ny,nx);
+  for(const v of[a,b]){const k=v[0]+','+v[1];if(!verts.has(k))verts.set(k,{p:v,an:[]});verts.get(k).an.push(an,an+Math.PI)}
+  const n=Math.min(160,Math.max(2,Math.ceil(len/Math.max(g/6,len/160))));
+  for(const s of[1,-1]){const pts=[];for(let i=0;i<=n;i++){const t=i/n;pts.push([a[0]+dx*t+s*g*nx,a[1]+dy*t+s*g*ny])}run(pts)}}
+ // okręgi wokół wierzchołków próbkowane regularnie i dokładnie w kierunkach normalnych krawędzi, dzięki czemu łuk styka się z przesuniętą krawędzią
+ for(const v of verts.values()){const T2=2*Math.PI,ang=[];for(let k=0;k<72;k++)ang.push(k*T2/72);v.an.forEach(x=>ang.push(((x%T2)+T2)%T2));ang.sort((p,q)=>p-q);ang.push(ang[0]+T2);
+  run(ang.map(t=>[v.p[0]+g*Math.cos(t),v.p[1]+g*Math.sin(t)]))}
+ m.set(g,out);return out}
+function drawZone(e){const g=gapOf(e);if(!(g>0))return;const Lp=zoneLocal(e,g);if(!Lp.length)return;
+ const q=seg(e),r=q.rot*Math.PI/180,co=Math.cos(r),si=Math.sin(r);let minY=1e18,sx=0,sn=0;
+ cx.save();cx.strokeStyle=e.col;cx.lineWidth=1.6;cx.setLineDash([9,6]);cx.beginPath();
+ for(const pth of Lp)pth.forEach(([x,y],i)=>{const[X,Y]=P(x*co-y*si+q.x,x*si+y*co+q.y);if(i)cx.lineTo(X,Y);else cx.moveTo(X,Y);minY=Math.min(minY,Y);sx+=X;sn++});
+ cx.stroke();cx.setLineDash([]);
+ const t='odstęp '+fmt(g)+' mm';cx.font='11px Segoe UI';cx.textAlign='center';const w=cx.measureText(t).width+10,tx=sx/sn,ty=minY-8;
+ cx.fillStyle='#fff';cx.fillRect(tx-w/2,ty-12,w,16);cx.fillStyle=e.col;cx.fillText(t,tx,ty);cx.restore()}
+const nextName=()=>'Przeszkoda '+(obs.reduce((m,o)=>Math.max(m,+(o.name.match(/\d+$/)||[0])[0]),0)+1);
+function outHall(W,o,m){const eo=edges([o]);return touch(edges(W),eo,m)||W.some(s=>s.p.some(q=>!near(q,eo,1e-3)&&!inPoly(q,o.p)))}
+// odstęp elementu: własny (karta elementu) albo domyślny z paska na dole; dla pary elementów obowiązuje większy z dwóch
+const gapOf=e=>(typeof e.gap=='number'&&e.gap>=0)?e.gap:margin;
+const gapTxt=e=>typeof e.gap=='number'?String(e.gap).replace('.',','):'';
+function setGap(e,s){s=String(s).trim();if(!s){delete e.gap;return''}const v=num(s);if(isNaN(v)||v<0)return'err';e.gap=v;return''}
+function clash(){const A=els.filter(active).map(e=>{const w=world(e);return{e,w,b:bbox(w),m:gapOf(e)}}),pairs=[],out=[],o=outer(),
+ OB=obs.filter(ob=>!otNoColl[ob.type||'inne']).map(ob=>{const s=[{c:1,p:ob.p}];return{o:ob,s,b:bbox(s)}}),   // typy przeszkód z wyłączonym wykrywaniem kolizji są pomijane
+ bbNear=(a,b,m)=>a[0]-m<b[2]&&b[0]-m<a[2]&&a[1]-m<b[3]&&b[1]-m<a[3];
+ for(let i=0;i<A.length;i++){
+  for(let j=i+1;j<A.length;j++){const m=Math.max(A[i].m,A[j].m);if(bbNear(A[i].b,A[j].b,m)&&hit(A[i].w,A[j].w,m))pairs.push([A[i].e,A[j].e])}
+  OB.forEach(x=>{if(bbNear(A[i].b,x.b,A[i].m)&&hit(A[i].w,x.s,A[i].m))pairs.push([A[i].e,x.o])});
+  if(o&&outHall(A[i].w,o,A[i].m))out.push(A[i].e)}
+ return{pairs,out}}
+
+// ---- rysowanie ----
+function fit(){const b=hall.length?bbox(hall):[0,0,20000,12000],w=cv.clientWidth,h=cv.clientHeight;
+ V.k=Math.min((w-80)/(b[2]-b[0]),(h-80)/(b[3]-b[1]));V.x=40-b[0]*V.k;V.y=h-40+b[1]*V.k}
+const P=(x,y)=>[x*V.k+V.x,-y*V.k+V.y];
+function path(sh){sh.forEach(s=>{s.p.forEach((q,i)=>{const[x,y]=P(...q);i?cx.lineTo(x,y):(cx.moveTo(x,y))});if(s.c)cx.closePath()})}
+// widok szczegółowy elementu złożonego: części trwające w wybranym dniu rysowane pełną linią, jeszcze niezaczęte linią kropkowaną, zakończone pomijane
+const PART_WAIT_ALPHA=.4;   // przezroczystość linii i nazw części, które jeszcze się nie zaczęły (1 = pełna widoczność)
+function drawParts(e){const g=seg(e),rr=g.rot*Math.PI/180,co=Math.cos(rr),si=Math.sin(rr);
+ cx.save();
+ e.parts.forEach(p=>{const st=partState(p);if(st=='done')return;const Wd=worldSh(e,p.sh);cx.beginPath();path(Wd);
+  if(st=='on'){cx.globalAlpha=.16;cx.fillStyle=e.col;cx.fill();cx.globalAlpha=.85;cx.strokeStyle='#1c2a35';cx.lineWidth=1;cx.setLineDash([]);cx.stroke()}
+  else{cx.globalAlpha=PART_WAIT_ALPHA;cx.strokeStyle=e.col;cx.lineWidth=1;cx.setLineDash([2,3]);cx.stroke();cx.setLineDash([])}
+  const b=bbox(Wd);if((b[2]-b[0])*V.k>70&&(b[3]-b[1])*V.k>16){const la=labelPt(p.sh,p),[x,y]=P(la[0]*co-la[1]*si+g.x,la[0]*si+la[1]*co+g.y);
+   cx.globalAlpha=st=='on'?1:PART_WAIT_ALPHA+.15;cx.fillStyle=st=='on'?'#44525c':e.col;cx.font='10px Segoe UI';cx.textAlign='center';cx.fillText(p.name,x,y+3)}});
+ cx.restore()}
+function draw(){const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+ if(cv.width!=w*dpr){cv.width=w*dpr;cv.height=h*dpr}cx.setTransform(dpr,0,0,dpr,0,0);
+ cx.fillStyle='#fbfcfc';cx.fillRect(0,0,w,h);
+ cx.strokeStyle='#e1e7ea';cx.lineWidth=1;const g=1000*V.k;if(g>6){cx.beginPath();for(let x=V.x%g;x<w;x+=g){cx.moveTo(x,0);cx.lineTo(x,h)}for(let y=V.y%g;y<h;y+=g){cx.moveTo(0,y);cx.lineTo(w,y)}cx.stroke()}
+ cx.strokeStyle='#51606b';cx.lineWidth=2;cx.beginPath();path(hall);cx.stroke();
+ obs.forEach(o=>{cx.beginPath();path([{c:1,p:o.p}]);cx.globalAlpha=.55;cx.fillStyle=otc(o);cx.fill();cx.globalAlpha=1;
+  cx.strokeStyle=o.id==selO?'#0b6e8a':otc(o);cx.lineWidth=o.id==selO?3:1.5;cx.stroke();
+  if(editV&&o.id==selO)drawHandles(o);
+  if(!obsLabels)return;const lp=labelPt([{c:1,p:o.p}],o.p),[x,y]=P(lp[0],lp[1]);cx.fillStyle='#44525c';cx.font='11px Segoe UI';cx.textAlign='center';cx.fillText(o.name,x,y+4)});
+ const R=clash(),bad=new Set(R.pairs.flat().map(e=>e.id)),outs=new Set(R.out.map(e=>e.id));
+ {const dd=$('#dd');dd.classList.toggle('bad',R.pairs.length>0);dd.classList.toggle('wa',!R.pairs.length&&R.out.length>0)}
+ els.forEach(e=>{const a=active(e);if(!a&&!ghostNear(e))return;cx.beginPath();path(world(e));
+  if(!a){cx.globalAlpha=.25;cx.setLineDash([5,4]);cx.strokeStyle=e.col;cx.lineWidth=1;cx.stroke();cx.setLineDash([]);cx.globalAlpha=1;return}
+  const c=bad.has(e.id)?'#c62f2f':outs.has(e.id)?'#d98a00':e.col;cx.globalAlpha=.28;cx.fillStyle=c;cx.fill();cx.globalAlpha=1;
+  cx.strokeStyle=c;cx.lineWidth=e.id==sel?3:1.8;cx.stroke();if(isComp(e))drawParts(e);
+  const g=seg(e),la=labelPt(e.sh),rr=g.rot*Math.PI/180,[x,y]=P(la[0]*Math.cos(rr)-la[1]*Math.sin(rr)+g.x,la[0]*Math.sin(rr)+la[1]*Math.cos(rr)+g.y);cx.fillStyle='#1c2a35';cx.font='12px Segoe UI';cx.textAlign='center';cx.fillText(e.name,x,y+4)});
+ els.forEach(e=>{if(gapShow.has(e.id)&&active(e))drawZone(e)});
+ cranes.filter(c=>c.day==fromD(day)).forEach(drawCrane);
+ drawTexts();
+ const se=els.find(e=>e.id==sel);
+ if(se&&se.hist&&se.hist.length){const pts=[[se.x,se.y,se.start],...se.hist.map(k=>[k.x,k.y,k.d])];
+  cx.save();cx.strokeStyle='#b5651d';cx.fillStyle='#b5651d';cx.lineWidth=1.5;cx.setLineDash([6,4]);cx.beginPath();
+  pts.forEach(([x,y],i)=>{const[a,b]=P(x,y);i?cx.lineTo(a,b):cx.moveTo(a,b)});cx.stroke();cx.setLineDash([]);
+  cx.font='11px Segoe UI';cx.textAlign='left';pts.forEach(([x,y,d])=>{const[a,b]=P(x,y);cx.beginPath();cx.arc(a,b,4,0,7);cx.fill();cx.fillText(d,a+7,b-7)});cx.restore()}
+ lbl=[];meas=meas.filter(m=>ent(m[0])&&ent(m[1]));if(mp&&!ent(mp))mp=null;
+ cx.strokeStyle='#7a3db8';
+ if(mp){if(mp[0]=='h'||mp[0]=='p'){const[x,y]=P(...ent(mp).pt);cx.lineWidth=3;cx.beginPath();cx.arc(x,y,7,0,7);cx.stroke()}else{const s=shp(mp);if(s){cx.beginPath();path(s);cx.lineWidth=4;cx.stroke()}}}
+ if((mode=='measure'||mode=='pmeasure')&&cur){const[x,y]=P(...cur);cx.lineWidth=2;cx.strokeRect(x-5,y-5,10,10)}
+ meas.forEach(([ka,kb])=>{const A=shp(ka),B=shp(kb);if(!A||!B)return;const r=nearest(A,B);if(!r)return;
+  const[x1,y1]=P(...r.a),[x2,y2]=P(...r.b);cx.strokeStyle='#7a3db8';cx.lineWidth=2;
+  if(r.d>0){cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke();cx.fillStyle='#7a3db8';[[x1,y1],[x2,y2]].forEach(([x,y])=>{cx.beginPath();cx.arc(x,y,3.5,0,7);cx.fill()})}
+  const t=r.ov?(ka[0]=='h'||kb[0]=='h'?'punkt wewnątrz':'nakładają się'):fmt(r.d)+' '+unit,mx=(x1+x2)/2,my=(y1+y2)/2;cx.font='12px Segoe UI';cx.textAlign='center';const w=cx.measureText(t).width+12;
+  cx.fillStyle='#fff';cx.fillRect(mx-w/2,my-19,w,19);cx.lineWidth=1;cx.strokeRect(mx-w/2,my-19,w,19);cx.fillStyle='#7a3db8';cx.fillText(t,mx,my-5);
+  const key=ka+'|'+kb;lbl.push({x:mx-w/2,y:my-19,w,h:19,k:key});
+  if(mOpen.has(key)&&!r.ov&&r.d>0){const dx=r.b[0]-r.a[0],dy=r.b[1]-r.a[1],[qx,qy]=P(r.b[0],r.a[1]);
+   cx.save();cx.setLineDash([5,4]);cx.lineWidth=1.5;cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(qx,qy);cx.lineTo(x2,y2);cx.stroke();cx.setLineDash([]);cx.lineWidth=1;
+   const tag=(s,px,py)=>{const w2=cx.measureText(s).width+12;cx.fillStyle='#fff';cx.fillRect(px-w2/2,py-9,w2,18);cx.strokeRect(px-w2/2,py-9,w2,18);cx.fillStyle='#7a3db8';cx.fillText(s,px,py+4);lbl.push({x:px-w2/2,y:py-9,w:w2,h:18,k:key})};
+   if(Math.abs(dx)>1e-9)tag('ΔX = '+fmt(Math.abs(dx))+' '+unit,(x1+qx)/2,y1);
+   if(Math.abs(dy)>1e-9)tag('ΔY = '+fmt(Math.abs(dy))+' '+unit,qx,(qy+y2)/2);cx.restore()}});
+ if(mode=='obs'&&dpts.length){const pts=cur?dpts.concat([cur]):dpts;cx.beginPath();path([{c:0,p:pts}]);cx.strokeStyle='#0b6e8a';cx.lineWidth=2;cx.setLineDash([6,4]);cx.stroke();cx.setLineDash([]);
+  cx.fillStyle='#0b6e8a';dpts.forEach(q=>{const[x,y]=P(...q);cx.fillRect(x-3,y-3,6,6)})}
+ const ms=[];if(R.pairs.length)ms.push('Kolizje: '+R.pairs.map(([a,b])=>a.name+' × '+b.name).join('; ')+'.');
+ if(R.out.length)ms.push('Poza obrysem hali lub zbyt blisko ściany: '+R.out.map(e=>e.name).join(', ')+'.');
+ if(ms.length){say(ms.join(' '));issue=true}else if(issue){say('Brak kolizji w dniu '+fromD(day)+'.');issue=false}}
+function slider(){$('#dd').value=fromD(day);$('#wd').textContent=new Date(day*864e5).toLocaleDateString('pl-PL',{weekday:'long',timeZone:'UTC'})}
+const openIds=new Set();let fFrom='',fTo='',scrollSel=false,lastHdr={id:0,t:0};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const pl=s=>s.split('-').reverse().join('.');
+const inFilter=e=>(!fFrom||e.end>=fFrom)&&(!fTo||e.start<=fTo);
+function startRename(e,d){const b=d.querySelector('.eh b');if(!b)return;
+ const inp=document.createElement('input');inp.type='text';inp.value=e.name;inp.className='rn';inp.setAttribute('aria-label','Etykieta elementu');b.replaceWith(inp);
+ if(inp.focus)inp.focus();if(inp.select)inp.select();let done=false;
+ const commit=blur=>{if(done)return;const v=inp.value.trim();
+  if(!v||v==e.name){done=true;list();return}
+  if(els.some(z=>z!==e&&z.name.toLowerCase()==v.toLowerCase())){say('Element „'+v+'” już istnieje. Wpisz inną etykietę.');if(blur){done=true;list()}else if(inp.focus)inp.focus();return}
+  done=true;const old=e.name;e.name=v;chk();all();say('Zmieniono etykietę „'+old+'” na „'+v+'”.')};
+ inp.onkeydown=ev=>{if(ev.key=='Enter'){ev.preventDefault();commit(false)}else if(ev.key=='Escape'){ev.stopPropagation();done=true;list()}};
+ inp.onblur=()=>commit(true)}
+function list(){const L=$('#list'),st=L.scrollTop;L.innerHTML='';listObs();
+ const vis=els.filter(inFilter);
+ $('#lc').textContent='Elementy'+(els.length?(vis.length==els.length?' ('+els.length+')':' ('+vis.length+' z '+els.length+')'):'');
+ if(!els.length)L.innerHTML='<p class="emp">Brak elementów. Dodaj zarysy z pliku DXF albo wstaw dane przykładowe.</p>';
+ else if(!vis.length)L.innerHTML='<p class="emp">Żaden element nie jest w produkcji w wybranym okresie.</p>';
+ vis.forEach(e=>{const op=openIds.has(e.id),g=seg(e),d=document.createElement('div');
+  d.className='er'+(e.id==sel?' sel':'');d.dataset.id=e.id;d.style.borderLeftColor=e.col;
+  d.innerHTML=`<div class="eh" data-a="sel" title="Kliknij dwukrotnie, aby zmienić etykietę">${active(e)?'<i class="live" title="W produkcji w dniu wybranym w kalendarzu"></i>':''}<div class="tx"><b>${esc(e.name)}</b><small>${pl(e.start)} – ${pl(e.end)}</small></div><button class="ex" data-a="ex" title="${op?'Zwiń':'Rozwiń'} szczegóły" aria-expanded="${op}">${op?'▴':'▾'}</button></div>`+(op?`<div class="ed">
+<div class="row"><label>Start</label><input type="date" value="${e.start}" data-k="start"${isComp(e)?' disabled title="Daty całości wynikają z dat części"':''}></div>
+<div class="row"><label>Koniec</label><input type="date" value="${e.end}" data-k="end"${isComp(e)?' disabled title="Daty całości wynikają z dat części"':''}></div>
+<div class="row"><label>Obrót</label><input type="text" inputmode="decimal" data-rot value="${ang(g.rot)}"><span>°</span></div>
+<div class="row"><label>Obróć o</label><button class="b5" data-a="rt" title="Obróć o 5° w prawo (zgodnie z ruchem wskazówek zegara)">5° ↻</button><input type="text" inputmode="decimal" data-rel placeholder="kąt" title="Wpisz kąt w stopniach, np. 15 lub -30, i naciśnij Enter lub OK"><button class="b5" data-a="rl" title="Obróć o 5° w lewo (przeciwnie do ruchu wskazówek zegara)">↺ 5°</button><button class="b5" data-a="rr" title="Obróć o wpisany kąt">OK</button></div>
+<div class="row"><label>Przesuń</label><input type="text" inputmode="decimal" data-dx placeholder="ΔX"><input type="text" inputmode="decimal" data-dy placeholder="ΔY"><button data-a="mv">OK</button></div>
+<div class="row"><label title="Minimalna odległość tego elementu od innych elementów, przeszkód i ściany. Puste pole = odstęp domyślny z paska na dole.">Odstęp</label><input type="text" inputmode="decimal" data-gap placeholder="domyślny: ${fmt(margin)}" value="${gapTxt(e)}"><span>mm</span></div>
+${isComp(e)?`<div class="hh">Części (${e.parts.length}): nazwa i daty</div>`+e.parts.map((p,i)=>`<div class="row pn"><input type="text" data-pn="${i}" value="${escA(p.name)}" aria-label="Nazwa części"><span class="pst ${partState(p)}">${{on:'trwa',wait:'przed startem',done:'zakończona'}[partState(p)]}</span></div><div class="row"><input type="date" data-ps="${i}" value="${p.start}" aria-label="Start części"><input type="date" data-pe="${i}" value="${p.end}" aria-label="Koniec części"></div>`).join(''):''}<div class="row rb">${txCount(e)>0?`<button class="sqs${e.txHide?' on':''}" data-a="txt" title="${e.txHide?'Pokaż':'Ukryj'} teksty z pliku DXF tego elementu (${txCount(e)})" aria-label="${e.txHide?'Pokaż':'Ukryj'} teksty (${txCount(e)})"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC.text}"/></svg></button>`:''}<button data-a="gz" class="${gapShow.has(e.id)?'on':''}" title="${gapShow.has(e.id)?'Ukryj odstęp na podglądzie':'Pokaż odstęp na podglądzie'}: przerywana linia wokół elementu pokazuje strefę, w której nie powinny znaleźć się inne elementy, przeszkody ani ściana hali.">Odstęp</button><button data-a="lib"${isComp(e)?' disabled title="Elementy złożone nie są jeszcze obsługiwane w bibliotece"':' title="Zapisz zarys tego elementu w bibliotece"'}>Do biblioteki</button><button data-a="d">Usuń</button></div>
+<div class="hh">Historia pozycji (X; Y; obrót)</div>
+<div class="hl"><span>Początkowa: ${fmt(e.x)}; ${fmt(e.y)}; ${ang(e.rot)}°</span><button data-a="hg" data-i="-1">Idź</button></div>
+${(e.hist||[]).map((k,i)=>`<div class="hl"><input type="date" value="${k.d}" data-hd="${i}"><span>${fmt(k.x)}; ${fmt(k.y)}; ${ang(k.rot)}°</span><button data-a="hg" data-i="${i}">Idź</button><button data-a="hx" data-i="${i}" title="Usuń wpis">×</button></div>`).join('')}
+<div class="row"><button data-a="hn">Zmień pozycję od bieżącego dnia</button></div></div>`:'');
+  const q=s=>d.querySelector(s);
+  d.onclick=ev=>{const t=ev.target.closest('[data-a]'),a=t&&t.dataset.a;
+   if(ev.target.tagName=='INPUT'||!a){if(sel!=e.id){sel=e.id;selO=null;document.querySelectorAll('#list .er').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');draw()}return}
+   let m='';
+   if(a=='ex'){if(op)openIds.delete(e.id);else{openIds.clear();openIds.add(e.id)}sel=e.id;selO=null}
+   else if(a=='gz'){if(gapShow.has(e.id)){gapShow.delete(e.id);m='Ukryto odstęp elementu „'+e.name+'”.'}
+    else if(!(gapOf(e)>0))return say('Odstęp elementu „'+e.name+'” wynosi 0 mm, więc nie ma strefy do pokazania. Wpisz odstęp w polu albo ustaw odstęp domyślny na dole.');
+    else{gapShow.add(e.id);m='Linia przerywana pokazuje odstęp '+fmt(gapOf(e))+' mm wokół „'+e.name+'”'+(typeof e.gap=='number'?'.':' (odstęp domyślny).')}}
+   else if(a=='txt'){e.txHide=!e.txHide;m=(e.txHide?'Ukryto':'Pokazano')+' teksty elementu „'+e.name+'”.'+(txHideAll?' Uwaga: wszystkie teksty są ukryte zbiorczo (przycisk „Teksty” na pasku).':'')}
+   else if(a=='lib'){if(isComp(e))return say('Elementy złożone nie są jeszcze obsługiwane w bibliotece.');saveToLib(e);return}
+   else if(a=='rl'||a=='rt'){const g=seg(e);g.rot=norm(g.rot+(a=='rl'?5:-5));m='Obrócono „'+e.name+'” o 5° '+(a=='rl'?'w lewo':'w prawo')+' (obrót: '+ang(g.rot)+'°).'}
+   else if(a=='d')els=els.filter(z=>z!=e);
+   else if(a=='rr'){const v=num(q('[data-rel]').value);if(isNaN(v))return say('Wpisz kąt w stopniach, np. 15 lub -30 (dodatni = przeciwnie do ruchu wskazówek zegara).');
+    const g=seg(e);g.rot=norm(g.rot+v);m='Obrócono „'+e.name+'” o '+fmt(v)+'° (obrót: '+ang(g.rot)+'°).'}
+   else if(a=='mv'){const sx=q('[data-dx]').value.trim(),sy=q('[data-dy]').value.trim();
+    if(!sx&&!sy)return say('Wpisz przesunięcie ΔX i/lub ΔY w '+unit+' (X w prawo, Y w górę).');
+    const dx=sx?num(sx):0,dy=sy?num(sy):0;if(isNaN(dx)||isNaN(dy))return say('Przesunięcie musi być liczbą, np. 250 lub -40,5.');
+    const g=seg(e);g.x+=dx;g.y+=dy;m='Przesunięto „'+e.name+'” o ΔX='+fmt(dx)+', ΔY='+fmt(dy)+' '+unit+'.'}
+   else if(a=='hn'){const g=seg(e),ds=fromD(day);
+    if((e.hist||[]).some(k=>k.d==ds))return say('Na dzień '+ds+' istnieje już wpis historii. Przeciągnij element albo użyj pól Obrót i Przesuń, aby zmienić jego pozycję.');
+    (e.hist=e.hist||[]).push({d:ds,x:g.x,y:g.y,rot:g.rot});e.hist.sort((p,r)=>toD(p.d)-toD(r.d));
+    m='Dodano wpis historii „'+e.name+'” od '+ds+'. Przeciągnij element, aby zmienić jego pozycję od tego dnia.'}
+   else if(a=='hg'){const i=+t.dataset.i;day=toD(i<0?e.start:e.hist[i].d)}
+   else if(a=='hx'){e.hist.splice(+t.dataset.i,1);if(!e.hist.length)delete e.hist;m='Usunięto wpis historii.'}
+   else if(a=='sel'){const now=Date.now();if(lastHdr.id==e.id&&now-lastHdr.t<450){lastHdr={id:0,t:0};startRename(e,d);return}lastHdr={id:e.id,t:now};sel=e.id;selO=null;selC=null;openIds.clear();openIds.add(e.id)}
+   all();if(m)say(m)};
+  if(op){
+   d.querySelectorAll('input[data-k]').forEach(i=>i.onchange=()=>{e[i.dataset.k]=i.value;d.querySelector('.eh small').textContent=pl(e.start)+' – '+pl(e.end);draw();chk()});
+   d.querySelectorAll('input[data-pn]').forEach(i=>i.onchange=()=>{const k=+i.dataset.pn,v=i.value.trim(),p=e.parts[k];
+    if(!v||e.parts.some((z,j)=>j!==k&&z.name.toLowerCase()==v.toLowerCase())){i.value=p.name;return say('Nazwa części jest pusta albo powtarza się w tym elemencie.')}
+    p.name=v;all()});
+   d.querySelectorAll('input[data-ps],input[data-pe]').forEach(i=>i.onchange=()=>{const isS=i.dataset.ps!==undefined,p=e.parts[+(isS?i.dataset.ps:i.dataset.pe)],v=i.value,ns=isS?v:p.start,ne=isS?p.end:v;
+    if(!v||ne<ns){i.value=isS?p.start:p.end;return say('Data zakończenia części nie może być wcześniejsza niż data rozpoczęcia, a pole nie może być puste.')}
+    p.start=ns;p.end=ne;recalcComp(e);all()});
+   d.querySelectorAll('input[data-hd]').forEach(i=>i.onchange=()=>{const k=e.hist[+i.dataset.hd];
+    if(!i.value||e.hist.some(z=>z!==k&&z.d==i.value)){i.value=k.d;return say('Wpis historii na tę datę już istnieje albo data jest pusta.')}
+    k.d=i.value;e.hist.sort((p,r)=>toD(p.d)-toD(r.d));all()});
+   const ri=q('[data-rot]');ri.onchange=()=>{const v=num(ri.value),g=seg(e);if(!isNaN(v))g.rot=norm(v);ri.value=ang(g.rot);draw();chk()};
+   const gi=q('[data-gap]');gi.onchange=()=>{if(setGap(e,gi.value)=='err'){gi.value=gapTxt(e);say('Odstęp musi być liczbą nieujemną w mm, np. 250. Puste pole oznacza odstęp domyślny.');return}gi.value=gapTxt(e);draw();chk()};
+   [['[data-rel]','rr'],['[data-dx]','mv'],['[data-dy]','mv']].forEach(([s,a])=>q(s).onkeydown=ev=>{if(ev.key=='Enter')q('[data-a='+a+']').click()})}
+  L.append(d)});
+ renderXW();L.scrollTop=st;if(scrollSel){scrollSel=false;const s=L.querySelector('.er.sel');if(s&&s.scrollIntoView)s.scrollIntoView({block:'nearest'})}}
+function all(){slider();list();draw();chk()}
+
+// ---- interakcja ----
+let drag=null;const W=ev=>[(ev.offsetX-V.x)/V.k,-(ev.offsetY-V.y)/V.k];
+cv.oncontextmenu=e=>e.preventDefault();
+cv.onmousedown=ev=>{if(document.activeElement&&document.activeElement!==document.body&&document.activeElement.blur)document.activeElement.blur();const[wx,wy]=W(ev);
+ if(ev.button==2){drag={pan:1,x:ev.offsetX,y:ev.offsetY};return}
+ {const lk=mode=='obs'?null:hitLabel(ev.offsetX,ev.offsetY);if(lk){toggleMeas(lk);return}}
+ if(mode=='measure'){pickMeas(wx,wy,ev.shiftKey);return}
+ if(mode=='pmeasure'){pickPt(wx,wy);return}
+ if(mode=='obs'){addPt(ev);return}
+ if(editV&&!mode&&selO){const eo=obs.find(q=>q.id==selO),vi=eo?vertexAt(eo,wx,wy):-1;if(vi>=0){drag={v:{o:eo,i:vi}};return}}
+ const h=[...els].reverse().find(e=>{if(!active(e))return false;const b=bbox(world(e));return wx>=b[0]&&wx<=b[2]&&wy>=b[1]&&wy<=b[3]});
+ const cr=!h&&[...cranes].reverse().find(c=>c.day==fromD(day)&&hitCrane(c,wx,wy));
+ const o=!h&&!cr&&[...obs].reverse().find(q=>inPoly([wx,wy],q.p));
+ sel=h?h.id:null;selO=o?o.id:null;if(h){openIds.clear();openIds.add(h.id);scrollSel=true}selC=cr?cr.id:null;if(cr){openC.clear();openC.add(cr.id);scrollSel=true}if(o&&obsLock)say('Przeszkoda „'+o.name+'” jest zablokowana. Aby ją przesunąć, odblokuj ruch przeszkód (przycisk „Blokada” na pasku).');
+ drag=h?{e:seg(h),dx:seg(h).x-wx,dy:seg(h).y-wy}:cr?{c:cr,dx:cr.x-wx,dy:cr.y-wy}:o?(obsLock?null:{o,lx:wx,ly:wy}):{pan:1,x:ev.offsetX,y:ev.offsetY};list();draw()};
+addEventListener('mouseup',()=>{drag=null;chk()});
+cv.onmousemove=ev=>{
+ if(!drag){const[hx,hy]=W(ev),eo=editV&&!mode?obs.find(q=>q.id==selO):null;cv.style.cursor=(mode!='obs'&&hitLabel(ev.offsetX,ev.offsetY))?'pointer':(eo&&vertexAt(eo,hx,hy)>=0)?'move':(mode?'crosshair':'grab')}
+ if(drag&&drag.pan){V.x+=ev.offsetX-drag.x;V.y+=ev.offsetY-drag.y;drag.x=ev.offsetX;drag.y=ev.offsetY;draw();return}
+ if(mode=='obs'){cur=snapPt(ev);draw();return}
+ if(mode=='pmeasure'){const[wx,wy]=W(ev),q=perimPt(wx,wy,12);cur=q?q.pt:null;draw();return}
+ if(mode=='measure'){const[wx,wy]=W(ev),k=pickAt(wx,wy,ev.shiftKey);cur=k&&k[0]=='h'?ent(k).pt:null;draw();return}
+ if(!drag)return;
+ if(drag.o){const[wx,wy]=W(ev),dx=wx-drag.lx,dy=wy-drag.ly;drag.o.p=drag.o.p.map(q=>[q[0]+dx,q[1]+dy]);if(drag.o.tx)drag.o.tx=drag.o.tx.map(t=>Object.assign({},t,{x:t.x+dx,y:t.y+dy}));drag.lx=wx;drag.ly=wy}
+ else if(drag.v){const[wx,wy]=W(ev),o=drag.v.o,n=o.p.length,pv=o.p[(drag.v.i+n-1)%n];let x=wx,y=wy;if(ev.shiftKey){if(Math.abs(x-pv[0])>Math.abs(y-pv[1]))y=pv[1];else x=pv[0]}o.p=o.p.map((q,k)=>k==drag.v.i?[x,y]:q)}
+ else if(drag.c){const[wx,wy]=W(ev);drag.c.x=wx+drag.dx;drag.c.y=wy+drag.dy}
+ else{const[wx,wy]=W(ev);drag.e.x=wx+drag.dx;drag.e.y=wy+drag.dy}draw()};
+cv.onwheel=ev=>{ev.preventDefault();const[wx,wy]=W(ev),f=ev.deltaY<0?1.15:1/1.15;V.k*=f;V.x=ev.offsetX-wx*V.k;V.y=ev.offsetY+wy*V.k;draw()};
+addEventListener('resize',draw);
+const goDay=n=>{day=n;slider();list();draw();renderCal()};
+$('#dp').onclick=()=>goDay(day-1);$('#dn').onclick=()=>goDay(day+1);$('#dt').onclick=()=>goDay(toD(new Date().toISOString().slice(0,10)));
+$('#dd').onchange=e=>{if(e.target.value)goDay(toD(e.target.value));else slider()};
+
+// ---- pliki ----
+// DXF w UTF-8 (R2007+) albo w starszej stronie kodowej ($DWGCODEPAGE, domyślnie Windows-1250) – polskie znaki w tekstach
+async function readDxf(f){if(!f.arrayBuffer)return f.text();const buf=await f.arrayBuffer();
+ try{return new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch(e){
+  const head=new TextDecoder('latin1').decode(buf.slice(0,Math.min(buf.byteLength,200000))),m=/\$DWGCODEPAGE\s+3\s+(\S+)/.exec(head),
+   cp=m?({ANSI_1250:'windows-1250',ANSI_1251:'windows-1251',ANSI_1252:'windows-1252',ANSI_1253:'windows-1253',ANSI_1254:'windows-1254',ANSI_1257:'windows-1257'})[m[1].toUpperCase()]:null;
+  try{return new TextDecoder(cp||'windows-1250').decode(buf)}catch(e2){return new TextDecoder('latin1').decode(buf)}}}
+// ---- jednostka importowanego rysunku: wymiary są przeliczane na milimetry (program pracuje w mm) ----
+// Po wyborze pliku pojawia się okno z polami wyboru jednostki (mm, cm, m, in) i podglądem importu (kształt, rozmiar w mm, skala).
+const UNITS=[['mm','mm',1],['cm','cm',10],['m','m',1000],['in','in',25.4]];
+const unitF=u=>(UNITS.find(x=>x[0]==u)||UNITS[0])[2];
+let impU='mm';   // jednostka pliku właśnie importowanego (ustawiana w pick, używana przez parseCad)
+const detectUnit=t=>{const m=/\$INSUNITS\s+70\s+(\d+)/.exec(t.slice(0,300000));return m?({1:'in',4:'mm',5:'cm',6:'m'})[+m[1]]||null:null};
+let rawMemo={t:null,S:null};   // plik jest czytany raz: ten sam wynik służy podglądowi i właściwemu importowi
+const parseRaw=t=>{if(rawMemo.t!==t)rawMemo={t,S:parseDXF(t)};return rawMemo.S};
+// podgląd: kształty i teksty dopasowane do okienka, pod spodem rozmiar po przeliczeniu na mm oraz odcinek skali
+function drawImportPreview(S,f){
+ const c=$('#q_pv'),info=$('#q_pi');if(!c||!c.getContext)return;const g=c.getContext('2d'),W=c.width||680,H=c.height||300,T=S.texts||[];
+ g.clearRect(0,0,W,H);
+ let b=S.length?bbox(S):[1e18,1e18,-1e18,-1e18];
+ for(const t of T){b=[Math.min(b[0],t.x),Math.min(b[1],t.y),Math.max(b[2],t.x),Math.max(b[3],t.y)]}
+ if(b[0]>b[2]){if(info)info.textContent='Brak obiektów do podglądu.';return}
+ const w0=b[2]-b[0],h0=b[3]-b[1],pad=22,k=Math.min((W-2*pad)/Math.max(w0,1e-9),(H-2*pad-22)/Math.max(h0,1e-9),1e12);
+ const X=x=>pad+(x-b[0])*k+((W-2*pad)-w0*k)/2,Y=y=>H-pad-22-(y-b[1])*k-((H-2*pad-22)-h0*k)/2;
+ let pts=0;S.forEach(s=>pts+=s.p.length);const step=Math.max(1,Math.ceil(pts/60000));   // bardzo duże rysunki rysujemy rzadziej
+ g.lineWidth=1.2;g.strokeStyle='#44525c';g.lineJoin='round';
+ S.forEach((s,i)=>{if(i%step||s.p.length<2)return;g.beginPath();s.p.forEach(([x,y],j)=>j?g.lineTo(X(x),Y(y)):g.moveTo(X(x),Y(y)));if(s.c)g.closePath();g.stroke()});
+ g.fillStyle='#8a5a12';T.slice(0,300).forEach(t=>{const px=t.h*k*CAPK;if(px<4||px>400)return;g.save();g.translate(X(t.x),Y(t.y));g.rotate(-(t.rot||0)*Math.PI/180);g.font=px+'px "Segoe UI",Arial,sans-serif';g.textAlign=['left','center','right'][t.ha]||'left';g.textBaseline='alphabetic';g.fillText(String(t.s).split('\n')[0],0,([0,0,.5,1][t.va]||0)*t.h*k);g.restore()});
+ // odcinek skali: „ładna” długość (1, 2, 5 × 10^n mm) o długości ok. ćwierć szerokości okienka
+ const mmPerPx=f/k,raw=W*0.25*mmPerPx,e=Math.pow(10,Math.floor(Math.log10(raw))),nice=[1,2,5,10].map(m=>m*e).filter(v=>v<=raw).pop()||e,len=nice/mmPerPx;
+ g.strokeStyle='#1c2a35';g.fillStyle='#1c2a35';g.lineWidth=2;g.beginPath();g.moveTo(pad,H-12);g.lineTo(pad+len,H-12);g.stroke();
+ g.font='20px "Segoe UI",Arial,sans-serif';g.textAlign='left';g.textBaseline='alphabetic';g.fillText(nice>=1000?fmt(nice/1000)+' m':fmt(nice)+' mm',pad+len+8,H-6);
+ if(info)info.textContent='Rozmiar po imporcie: '+fmt(w0*f)+' × '+fmt(h0*f)+' mm · kształtów: '+S.length+(T.length?' · tekstów: '+T.length:'');
+}
+function askUnit(name,t){return new Promise(res=>{
+ let S;try{S=parseRaw(t)}catch(e){S=[]}
+ if(!S.length&&!(S.texts&&S.texts.length)){res('mm');return}   // brak obiektów: komunikat poda import, okno jednostki byłoby zbędne
+ const dwg=/\.dwg$/i.test(name),det=dwg?null:detectUnit(t),def=det||'mm';
+ askDlg({title:'Jednostka pliku',intro:'Plik „'+esc(name)+'”. '+(det?'W pliku zapisano jednostkę: '+det+'. ':dwg?'Jednostka rysunku DWG nie jest odczytywana automatycznie. ':'Plik nie zawiera informacji o jednostce. ')+'Zaznacz jednostkę, w której go narysowano; wymiary zostaną przeliczone na milimetry.',
+  fields:[{id:'u',label:'Jednostka',value:def,options:UNITS.map(u=>[u[0],u[1]])}],
+  extra:'<canvas id="q_pv" width="680" height="300" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:3px;background:#fff"></canvas><p id="q_pi" class="kn" style="margin:4px 0 0"></p>',
+  ok:'Importuj',onCancel:()=>res(null),
+  onOpen:v=>drawImportPreview(S,unitF(v.u)),onChange:v=>drawImportPreview(S,unitF(v.u)),
+  onOk:v=>res(UNITS.some(x=>x[0]==v.u)?v.u:def)})})}
+function rescaleDxf(S,f){if(f===1)return S;const r=S.map(s=>({c:s.c,p:s.p.map(([x,y])=>[x*f,y*f])}));r.texts=(S.texts||[]).map(t=>Object.assign({},t,{x:t.x*f,y:t.y*f,h:t.h*f}));return r}
+const parseCad=t=>rescaleDxf(parseRaw(t),unitF(impU));
+function pick(cb,kind){const f=$('#fl');f.multiple=true;f.accept=kind=='cad'?(DWG_ON?'.dxf,.dwg':'.dxf'):kind=='xl'?'.xlsx,.csv':'.dxf,.xml,.json';f.value='';
+ f.onchange=async()=>{for(const x of f.files){if(kind=='xl'){await cb(x,x.name);continue}let t,note='';
+  if(/\.dwg$/i.test(x.name)){const r=await dwgToDxf(x);if(r==null)continue;t=r.text;note=r.note||''}else t=await(/\.dxf$/i.test(x.name)?readDxf(x):x.text());
+  let u='mm';if(kind=='cad'){const au=await askUnit(x.name,t);if(au==null){rawMemo={t:null,S:null};continue}u=au}impU=u;
+  try{await cb(t,x.name)}finally{impU='mm';rawMemo={t:null,S:null}}
+  if(note||u!='mm')say($('#msg').textContent+(u!='mm'?' Przeliczono z jednostki „'+u+'” na mm (×'+String(unitF(u)).replace('.',',')+').':'')+(note?' '+note:''))}};f.click()}
+const pickCad=cb=>pick(cb,'cad');
+// DWG -> tekst DXF: wbudowany moduł dwg-reader w procesie głównym (tylko wersja desktopowa); wynik trafia do zwykłego importu DXF
+async function dwgToDxf(file){
+ if(!DWG_ON){say('Odczyt plików DWG jest wyłączony. Zapisz rysunek w programie CAD jako DXF i wczytaj go ponownie.');return null}
+ if(!(window.api&&api.convertDwg)){say('Pliki DWG można wczytać w wersji desktopowej. W przeglądarce zapisz rysunek jako DXF.');return null}
+ say('Odczytuję „'+file.name+'” (DWG)…');
+ const buf=await file.arrayBuffer();let r;
+ try{r=await api.convertDwg(buf)}catch(e){r={error:'failed',detail:String((e&&e.message)||e)}}
+ if(r.error){say('Nie udało się odczytać „'+file.name+'”'+(r.detail?': '+String(r.detail).replace(/[.\s]+$/,'')+'.':'.')+' Zapisz rysunek w CAD jako DXF i wczytaj go ponownie.'+(r.error=='failed'?' (Błąd modułu DWG: prześlij ten plik do analizy.)':''));return null}
+ if(r.warnings&&r.warnings.length&&typeof console!='undefined')console.warn('DWG – ostrzeżenia odczytu:',r.warnings);
+ return r}
+function save(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+$('#bH').onclick=()=>pickCad(t=>{let s=parseCad(t);if(!s.length)return say('Nie znaleziono obsługiwanych obiektów (LINE, LWPOLYLINE, POLYLINE, CIRCLE, ARC, INSERT). Pliki DWG zapisz najpierw jako DXF.');s=prep(s);const r=splitHall(s);hall=r.hall;obs=r.obs;selO=null;
+ const txs=s.texts||[];hallTx=[];obs.forEach(o=>{o.tx=[]});txs.forEach(t=>{const o=obs.find(q=>inPoly([t.x,t.y],q.p));if(o)o.tx.push(t);else hallTx.push(t)});fit();all();
+ say('Wczytano plan hali ('+hall.length+' obiektów). '+(r.found?'Wykryto przeszkód (pętle wewnątrz obrysu): '+obs.length+'. Błędnie wykryte usuń na liście.':'Nie znaleziono zamkniętego obrysu hali, więc przeszkody nie zostały wykryte – dodaj je ręcznie.')+(txs.length?' Wczytano tekstów: '+txs.length+(txs.length>hallTx.length?' (przy przeszkodach: '+(txs.length-hallTx.length)+')':'')+'.':''))});
+$('#bKp').onclick=()=>pickCad(async(t,n)=>{const r=parseCadParts(t);
+ if(!r.parts.length){say('W pliku „'+n+'” nie znaleziono bloków pierwszego poziomu'+(r.loose?' (obiekty poza blokami są pomijane: '+r.loose+')':'')+'. Element złożony tworzy się z bloków (INSERT) w przestrzeni modelu.');return}
+ await askComposite(n,r)});
+$('#bE').onclick=()=>pickCad(async(t,n)=>{const s=prep(parseCad(t));if(!s.length)return say('Plik '+n+' nie zawiera obsługiwanych obiektów.');await askElem(n.replace(/\.(dxf|dwg)$/i,''),s)});
+$('#bS').onclick=()=>{if(!okDiscard())return;const R=(w,h)=>[{c:1,p:[[0,0],[w,0],[w,h],[0,h]]}];
+ hall=[{c:1,p:[[0,0],[24000,0],[24000,12000],[0,12000]]}];els=[];obs=[[14000,9000],[2000,9500]].map((q,i)=>({id:uid++,name:'Przeszkoda '+(i+1),type:i?'maszyna':'slup',p:[[q[0],q[1]],[q[0]+800,q[1]],[q[0]+800,q[1]+800],[q[0],q[1]+800]]}));
+ addEl('Rama A',R(6000,3000),5000,4000,day,day+9);addEl('Zbiornik B',R(4000,4000),11000,6000,day+5,day+14);
+ addEl('Kratownica C',[{c:1,p:[[0,0],[8000,0],[8000,2000],[2500,2000],[2500,5000],[0,5000]]}],17000,6000,day+3,day+12);
+ cranes=[];otTypes=[];otNoColl={};hallTx=[];els[0].hist=[{d:fromD(day+6),x:6500,y:9500,rot:0}];sel=null;fit();all();say('Wstawiono przykład (Rama A zmienia stanowisko po 6 dniach; zaznacz ją, by zobaczyć historię pozycji). Przesuń suwak czasu i spróbuj ustawić elementy tak, by się nie nakładały.')};
+// Wspólny opis zawartości eksportu stanu dnia dla DXF i DWG: zarysy (poly), okręgi (circle) i teksty (text) z nazwami warstw.
+function exportScene(){
+ const sc=[],P=(h,l)=>sc.push({t:'poly',layer:l,pts:h.p,closed:!!h.c});
+ hall.forEach(h=>P(h,'HALA'));obs.forEach(o=>P({p:o.p,c:1},'PRZESZKODY_'+layerOf(o.type)));els.filter(active).forEach(e=>exportShapes(e).forEach(h=>P(h,'ELEMENTY')));
+ // etykiety elementów (nazwy w środku zarysu, jak w programie) na osobnej warstwie ETYKIETY; wysokość tekstu odpowiada napisowi 3,2 mm na stronie PDF
+ const ex=pdfExtent(),sc0=Math.min(313/(ex[2]-ex[0]),257/(ex[3]-ex[1])),lh=Math.round(3.2/sc0/CAPK*10)/10,crs=cranes.filter(c=>c.day==fromD(day));
+ els.filter(active).forEach(e=>{const g=seg(e),la=labelPt(e.sh),rr=g.rot*Math.PI/180,x=la[0]*Math.cos(rr)-la[1]*Math.sin(rr)+g.x,y=la[0]*Math.sin(rr)+la[1]*Math.cos(rr)+g.y;
+  sc.push({t:'text',layer:'ETYKIETY',x,y,h:lh,text:e.name,ha:1,va:2})});
+ // etykiety dźwigów jak w programie („nazwa · R promień mm”): nad punktem wstawienia, obrócone razem z dźwigiem (czytelny kąt), wyrównane do dołu i środka
+ crs.forEach(c=>{const a=rdAng(c.rot),ar=a*Math.PI/180,off=lh*.6;
+  sc.push({t:'text',layer:'ETYKIETY',x:c.x-Math.sin(ar)*off,y:c.y+Math.cos(ar)*off,h:lh,text:c.name+' · R '+fmt(c.r)+' mm',rot:((a%360)+360)%360,ha:1,va:1})});
+ crs.forEach(c=>{craneWorld(c).forEach(h=>P(h,'DZWIGI'));sc.push({t:'circle',layer:'DZWIGI',x:c.x,y:c.y,r:c.r})});
+ worldTexts().forEach(t=>t.s.split('\n').forEach((ln,i)=>{const[x,y]=lineAt(t,i);sc.push({t:'text',layer:'TEKSTY_'+t.k.toUpperCase(),x,y,h:t.h,text:ln,rot:t.rot,ha:t.ha,va:t.va,fx:t.fx})}));
+ return sc}
+// DXF w formacie R12 (AC1009): bez uchwytów i podklas, który otwiera każda wersja AutoCAD (format R2000 bez uchwytów AutoCAD odrzuca: „Handle missing”).
+// Poligony zapisują się jako POLYLINE z wierzchołkami (VERTEX) i SEQEND, warstwy są zdefiniowane w tabeli LAYER.
+function sceneToDxf(sc){
+ const g=(c,v)=>c+'\n'+v+'\n',layers=[...new Set(sc.map(e=>e.layer))];let s='';
+ s+=g(0,'SECTION')+g(2,'HEADER')+g(9,'$ACADVER')+g(1,'AC1009')+g(0,'ENDSEC');
+ s+=g(0,'SECTION')+g(2,'TABLES');
+ s+=g(0,'TABLE')+g(2,'LTYPE')+g(70,1)+g(0,'LTYPE')+g(2,'CONTINUOUS')+g(70,0)+g(3,'Solid line')+g(72,65)+g(73,0)+g(40,0)+g(0,'ENDTAB');
+ s+=g(0,'TABLE')+g(2,'LAYER')+g(70,layers.length+1)+g(0,'LAYER')+g(2,'0')+g(70,0)+g(62,7)+g(6,'CONTINUOUS');
+ for(const l of layers)s+=g(0,'LAYER')+g(2,l)+g(70,0)+g(62,7)+g(6,'CONTINUOUS');
+ s+=g(0,'ENDTAB');
+ s+=g(0,'TABLE')+g(2,'STYLE')+g(70,1)+g(0,'STYLE')+g(2,'STANDARD')+g(70,0)+g(40,0)+g(41,1)+g(50,0)+g(71,0)+g(42,2.5)+g(3,'txt')+g(4,'')+g(0,'ENDTAB');
+ s+=g(0,'ENDSEC')+g(0,'SECTION')+g(2,'ENTITIES');
+ for(const e of sc){
+  if(e.t=='poly'){s+=g(0,'POLYLINE')+g(8,e.layer)+g(66,1)+g(70,e.closed?1:0);for(const q of e.pts)s+=g(0,'VERTEX')+g(8,e.layer)+g(10,q[0])+g(20,q[1])+g(30,0);s+=g(0,'SEQEND')+g(8,e.layer)}
+  else if(e.t=='circle')s+=g(0,'CIRCLE')+g(8,e.layer)+g(10,e.x)+g(20,e.y)+g(40,e.r);
+  else s+=g(0,'TEXT')+g(8,e.layer)+g(10,e.x)+g(20,e.y)+g(30,0)+g(40,e.h)+(e.fx&&e.fx!==1?g(41,e.fx):'')+g(1,dxfStr(e.text))+(e.rot!==undefined?g(50,e.rot):'')+(e.ha||e.va?g(72,e.ha||0)+g(11,e.x)+g(21,e.y)+g(31,0)+g(73,e.va||0):'')}
+ return s+g(0,'ENDSEC')+g(0,'EOF')}
+$('#bX').onclick=()=>{save('produkcja_'+fromD(day)+'.dxf',sceneToDxf(exportScene()),'application/dxf');say('Wyeksportowano stan na dzień '+fromD(day)+'.')};
+// zapis do DWG (EKSPERYMENTALNY): ta sama zawartość co w DXF, plik składa moduł zapisu w procesie głównym (tylko wersja desktopowa)
+($('#bXd')||{}).onclick=async()=>{
+ if(!DWG_EXP_ON)return say('Zapis do DWG jest wyłączony albo niedostępny (tylko wersja desktopowa). Użyj eksportu DXF.');
+ const d=fromD(day);say('Zapisuję DWG…');await new Promise(r=>setTimeout(r,20));
+ let r;try{r=await api.exportDwg(exportScene())}catch(e){r={error:String((e&&e.message)||e)}}
+ if(!r||r.error)return say('Nie udało się zapisać DWG'+(r&&r.error?': '+String(r.error).replace(/[.\s]+$/,''):'')+'. Użyj eksportu DXF.');
+ save('produkcja_'+d+'.dwg',r.data,'application/acad');
+ say('Wyeksportowano stan na dzień '+d+' do DWG (zapis eksperymentalny, format R2018). Jeśli AutoCAD zgłosi błąd przy otwarciu, użyj eksportu DXF.')};
+$('#bM').onclick=()=>{const x=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');let id=0;const T=[];
+ const task=(nm,s,f,extra)=>{id++;T.push(`<Task><UID>${id}</UID><ID>${id}</ID><Name>${x(nm)}</Name>${extra||''}<Start>${s}T08:00:00</Start><Finish>${f}T16:00:00</Finish></Task>`)};
+ els.forEach(e=>{if(isComp(e)){task(e.name,e.start,e.end,'<OutlineLevel>1</OutlineLevel><Summary>1</Summary>');e.parts.forEach(p=>task(e.name+': '+p.name,p.start,p.end,'<OutlineLevel>2</OutlineLevel>'))}   // element złożony: zadanie zbiorcze i zadania części
+  else task(e.name,e.start,e.end)});
+ save('harmonogram.xml','<?xml version="1.0" encoding="UTF-8"?>\n<Project xmlns="http://schemas.microsoft.com/project"><Name>Plan produkcji</Name><Tasks>'+T.join('')+'</Tasks></Project>','application/xml')};
+$('#bI').onclick=()=>pick(t=>{const d=new DOMParser().parseFromString(t,'text/xml');let n=0;
+ d.querySelectorAll('Task').forEach(k=>{const nm=k.querySelector('Name')?.textContent,s=k.querySelector('Start')?.textContent,f=k.querySelector('Finish')?.textContent;if(!nm||!s||!f)return;
+  const e=els.find(q=>q.name==nm&&!isComp(q));   // daty elementu złożonego wynikają z dat jego części (zadanie zbiorcze jest pomijane)
+  if(e){e.start=s.slice(0,10);e.end=f.slice(0,10);n++;return}
+  for(const c of els){if(!isComp(c))continue;const p=c.parts.find(z=>nm==c.name+': '+z.name);if(p){p.start=s.slice(0,10);p.end=f.slice(0,10);recalcComp(c);n++;return}}});all();say('Zaktualizowano daty dla '+n+' zadań (dopasowanie po nazwie).')});
+let file=null,saved='',dirty=false,issue=false;
+const state=()=>JSON.stringify({hall,els,uid,margin,obs,meas,obsLock,otCol,otNoColl,obsLabels,cranes,otTypes,hallTx,txHideAll});
+const snap=()=>JSON.stringify({v:1,hall,els,uid,margin,obs,meas,obsLock,otCol,otNoColl,obsLabels,cranes,otTypes,hallTx,txHideAll,day:fromD(day)},null,1);
+const base=p=>p.split(/[\\/]/).pop();
+function ttl(){document.title='Planer produkcji'+(file?' – '+base(file):'')+(dirty?' *':'')}
+function chk(){const d=state()!==saved;if(d!==dirty){dirty=d;ttl();window.api&&api.setDirty(d)}renderCal();histRecord()}
+const okDiscard=()=>!dirty||confirm('Projekt ma niezapisane zmiany, które zostaną utracone. Kontynuować?');
+function load(t,n,p){try{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const d=JSON.parse(t);if(!Array.isArray(d.hall)||!Array.isArray(d.els))throw 0;
+ hall=d.hall;els=d.els;obs=Array.isArray(d.obs)?d.obs:[];selO=null;cranes=Array.isArray(d.cranes)?d.cranes:[];selC=null;meas=Array.isArray(d.meas)?d.meas:[];obsLock=d.obsLock===undefined?true:!!d.obsLock;otCol=d.otCol&&typeof d.otCol=='object'?d.otCol:{};otNoColl=d.otNoColl&&typeof d.otNoColl=='object'?Object.fromEntries(Object.entries(d.otNoColl).filter(([k,v])=>v===true)):{};otTypes=Array.isArray(d.otTypes)?d.otTypes.filter(t=>t&&typeof t.id=='string'&&typeof t.name=='string'&&/^#[0-9a-f]{6}$/i.test(t.color)):[];obsLabels=d.obsLabels===undefined?true:!!d.obsLabels;hallTx=Array.isArray(d.hallTx)?d.hallTx.filter(okTx):[];txHideAll=!!d.txHideAll;setTxBtn();setLock();mp=null;uid=d.uid||els.length+1;margin=d.margin||0;$('#mg').value=margin;day=toD(d.day||fromD(day));sel=null;file=p||null;
+ saved=state();dirty=false;window.api&&api.setDirty(false);ttl();H.u=[];H.r=[];H.bytes=0;H.lk='';H.cur=null;H.cur=docNow();updUndo();fit();all();say('Otwarto projekt '+n+'.')}
+ catch(x){say('Plik '+n+' nie jest projektem zapisanym przez tę aplikację.')}}
+async function saveProj(as){
+ if(!window.api){save('projekt_produkcji.json',snap(),'application/json');saved=state();chk();return say('Zapisano projekt do pobranego pliku.')}
+ const p=await api.saveProject({path:file,text:snap(),as});
+ if(!p)return false;file=p;saved=state();chk();ttl();say('Zapisano projekt: '+p);return true}
+$('#bP').onclick=()=>saveProj(false);$('#bA').onclick=()=>saveProj(true);
+$('#bO').onclick=async()=>{if(!okDiscard())return;if(window.api){const r=await api.openProject();if(r)load(r.text,base(r.path),r.path)}else pick((t,n)=>load(t,n,null))};
+$('#mg').oninput=e=>{margin=Math.max(0,+e.target.value||0);list();draw();chk()};
+function addType(){askDlg({title:'Nowy typ przeszkód',intro:'Podaj nazwę i kolor nowego typu. Typ zapisuje się w projekcie i od razu można go wybierać dla nowych i istniejących przeszkód.',
+  fields:[{id:'n',label:'Nazwa typu',value:''},{id:'c',label:'Kolor',type:'color',value:'#2e7d9a'}],ok:'Dodaj typ',
+  onOk:v=>{const n=v.n.trim();if(!n)return'Podaj nazwę typu.';if(n.length>40)return'Nazwa typu może mieć najwyżej 40 znaków.';
+   if(allTypes().some(t=>t[1].toLowerCase()==n.toLowerCase()))return'Typ „'+n+'” już istnieje.';if(!/^#[0-9a-f]{6}$/i.test(v.c))return'Wybierz kolor typu.';
+   const id='u'+(uid++);otTypes.push({id,name:n,color:v.c});drawType=id;all();
+   say('Dodano typ „'+n+'”. Nowo rysowane przeszkody będą go używać; istniejącej przeszkodzie zmienisz typ na jej karcie.')}})}
+function delType(id){const t=otTypes.find(x=>x.id==id);if(!t)return;const n=obs.filter(o=>o.type==id).length;
+ if(!confirm('Usunąć typ „'+t.name+'”?'+(n?' Przeszkody tego typu ('+n+') zmienią typ na „Inne”.':'')))return;
+ obs.forEach(o=>{if(o.type==id)o.type='inne'});otTypes=otTypes.filter(x=>x!==t);delete otCol[id];delete otNoColl[id];if(drawType==id)drawType='inne';
+ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();all();say('Usunięto typ „'+t.name+'”.')}
+function renderTypes(){const T=$('#ot');if(!T)return;const ae=document.activeElement;if(ae&&ae.closest&&ae.closest('#ot'))return;
+ T.innerHTML='<div class="hh" style="margin-top:0">Typy przeszkód: kolor i wykrywanie kolizji</div>'+allTypes().map(([id,nm])=>`<div class="row"><input type="color" value="${otc({type:id})}" data-t="${id}" aria-label="Kolor: ${escA(nm)}"><span style="flex:1;color:var(--ink)">${esc(nm)}</span><label class="ksw" title="Wykrywanie kolizji z przeszkodami typu „${escA(nm)}”: ${otNoColl[id]?'wyłączone':'włączone'}"><input type="checkbox" data-c="${id}"${otNoColl[id]?'':' checked'} aria-label="Wykrywanie kolizji: ${escA(nm)}"><span></span></label>${OT.some(z=>z[0]==id)?'':`<button data-del="${id}" title="Usuń typ" aria-label="Usuń typ ${escA(nm)}" style="padding:1px 8px">×</button>`}</div>`).join('')+'<div class="row"><button id="ntb" title="Dodaj własny typ przeszkód: nazwa i kolor">+ Nowy typ</button></div>'
+  +'<label class="tl" style="padding:4px 0"><input type="checkbox" id="ol"'+(obsLabels?' checked':'')+'><span>Pokaż etykiety przeszkód</span></label><div class="row"><label>Nowe</label><select id="nt" aria-label="Typ nowych przeszkód">'+allTypes().map(([id,nm])=>`<option value="${id}"${id==drawType?' selected':''}>${esc(nm)}</option>`).join('')+'</select></div>';
+ T.querySelectorAll('input[type=color]').forEach(i=>i.oninput=()=>{otCol[i.dataset.t]=i.value;document.querySelectorAll('#ob .sw[data-ty="'+i.dataset.t+'"]').forEach(s=>s.style.background=i.value);draw();chk()});
+ $('#nt').onchange=e=>{drawType=e.target.value};$('#ol').onchange=e=>{obsLabels=e.target.checked;draw();chk()};
+ T.querySelectorAll('input[data-c]').forEach(i=>i.onchange=()=>{const id=i.dataset.c,nm=typeDef(id)[1];if(i.checked)delete otNoColl[id];else otNoColl[id]=true;
+  const lb=i.closest&&i.closest('label');if(lb)lb.title='Wykrywanie kolizji z przeszkodami typu „'+nm+'”: '+(i.checked?'włączone':'wyłączone');
+  all();say('Wykrywanie kolizji z przeszkodami typu „'+nm+'”: '+(i.checked?'włączone':'wyłączone')+'.')});
+ $('#ntb').onclick=addType;T.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delType(b.dataset.del))}
+function listObs(){$('#ob').innerHTML=obs.length?'':'<p style="color:var(--mut);margin:0">Brak przeszkód. Wykryj je przy imporcie hali lub narysuj ręcznie.</p>';lab('bW','Lista ('+obs.length+')','Lista przeszkód ('+obs.length+')');renderTypes();
+ obs.forEach(o=>{const d=document.createElement('div');d.className='el'+(o.id==selO?' sel':'');d.style.borderLeftColor=otc(o);
+  d.innerHTML='<div class="row"><input type="text" style="flex:1;font:inherit;padding:3px;border:1px solid var(--line);border-radius:3px"><button data-a="d">Usuń</button></div><div class="row"><i class="sw"></i><select aria-label="Typ przeszkody"></select></div>';
+  const t=d.querySelector('input'),sl=d.querySelector('select'),sw=d.querySelector('.sw');t.value=o.name;
+  sl.innerHTML=allTypes().map(([id,nm])=>`<option value="${id}"${id==(o.type||'inne')?' selected':''}>${esc(nm)}</option>`).join('');
+  sw.dataset.ty=o.type||'inne';sw.style.background=otc(o);
+  t.onchange=()=>{o.name=t.value||o.name;chk();draw()};
+  sl.onchange=()=>{o.type=sl.value;sw.dataset.ty=o.type;sw.style.background=otc(o);d.style.borderLeftColor=otc(o);draw();chk()};
+  d.onclick=ev=>{if(ev.target.dataset.a=='d'){obs=obs.filter(q=>q!=o);if(selO==o.id)selO=null;all()}else if(ev.target!=t&&ev.target!=sl){selO=o.id;sel=null;all()}};
+  $('#ob').append(d);if(o.id==selO&&!$('#ow').hidden)d.scrollIntoView({block:'nearest'})})}
+function snapPt(ev){let[x,y]=W(ev);const l=dpts[dpts.length-1];if(ev.shiftKey&&l){if(Math.abs(x-l[0])>Math.abs(y-l[1]))y=l[1];else x=l[0]}return[x,y]}
+function addPt(ev){const p=snapPt(ev),l=dpts[dpts.length-1];
+ if(dpts.length>=3){const[sx,sy]=P(...dpts[0]);if(Math.hypot(ev.offsetX-sx,ev.offsetY-sy)<9)return finishObs()}
+ if(l){const[lx,ly]=P(...l),[px,py]=P(...p);if(Math.hypot(px-lx,py-ly)<3)return}
+ dpts.push(p);draw()}
+function setMode(m){mode=m;dpts=[];cur=null;mp=null;lab('bB',m=='obs'?'Zakończ':'Przeszkoda',m=='obs'?'Zakończ rysowanie (Enter)':'Dodaj przeszkodę (rysuj)',m=='obs');lab('bR',m=='measure'?'Zakończ':'Odl. min.',m=='measure'?'Zakończ mierzenie (Esc)':'Najmniejsza odległość między elementami (kliknij dwa obiekty)',m=='measure');lab('bQ',m=='pmeasure'?'Zakończ':'Punkty',m=='pmeasure'?'Zakończ mierzenie (Esc)':'Odległość między punktami na obwodzie zarysów (kliknij dwa punkty)',m=='pmeasure');cv.style.cursor=m?'crosshair':'grab'}
+function finishObs(){let m;if(dpts.length>=3){const o={id:uid++,name:nextName(),type:drawType,p:dpts.slice()};obs.push(o);selO=o.id;sel=null;m='Dodano: '+o.name+'. Możesz ją przeciągnąć; Delete usuwa zaznaczoną przeszkodę.'}
+ else m='Przeszkoda wymaga co najmniej 3 wierzchołków – anulowano.';setMode(null);all();say(m)}
+$('#bB').onclick=()=>{if(mode=='obs')return finishObs();setMode('obs');say('Klikaj wierzchołki przeszkody (kliknięcie pierwszego punktu zamyka kształt). Shift = kąty proste, dwuklik lub Enter kończy, Esc anuluje.')};
+cv.ondblclick=()=>{if(mode=='obs')finishObs()};
+// ---- edycja przeszkód: przeciąganie wierzchołków zaznaczonej przeszkody ----
+function vertexAt(o,wx,wy){let bi=-1,bd=9/V.k;o.p.forEach((q,i)=>{const d=Math.hypot(q[0]-wx,q[1]-wy);if(d<=bd){bd=d;bi=i}});return bi}
+function drawHandles(o){cx.save();cx.fillStyle='#fff';cx.strokeStyle='#0b6e8a';cx.lineWidth=2;o.p.forEach(q=>{const[x,y]=P(q[0],q[1]);cx.fillRect(x-4,y-4,8,8);cx.strokeRect(x-4,y-4,8,8)});cx.restore()}
+function setEditV(on){editV=on;const b=$('#bV');b.textContent=on?'Zakończ edycję':'Edytuj wierzchołki';b.classList.toggle('on',on);draw();
+ say(on?(selO?'Edycja wierzchołków: przeciągnij kwadracik przy wierzchołku zaznaczonej przeszkody (Shift = kąty proste). Esc lub ponowne kliknięcie przycisku kończy.':'Edycja wierzchołków: zaznacz przeszkodę (kliknij ją na planie lub na liście), a pojawią się jej wierzchołki do przeciągania. Esc kończy.'):'Zakończono edycję wierzchołków.')}
+function setLock(){const b=$('#bL');b.textContent=obsLock?'Odblokuj ruch':'Zablokuj ruch';
+ b.title=obsLock?'Ruch przeszkód jest zablokowany (zaznaczać i edytować wierzchołki można nadal). Kliknij, aby pozwolić na ich przesuwanie.':'Ruch przeszkód jest odblokowany. Kliknij, aby go zablokować.';b.classList.toggle('on',obsLock)}
+$('#bL').onclick=()=>{obsLock=!obsLock;setLock();chk();say(obsLock?'Ruch przeszkód zablokowany – można je zaznaczać, ale nie przesuwać.':'Ruch przeszkód odblokowany.')};
+$('#bR').onclick=()=>{if(mode=='measure'){setMode(null);draw();return say('Zakończono mierzenie. Pomiary zostają na rysunku; „Wyczyść pomiary” je usuwa.')}
+ setMode('measure');draw();say('Kliknij pierwszy obiekt (element, przeszkodę, dźwig lub punkt na zarysie hali – kwadracik podpowiada punkt przyciągania), potem drugi. Shift+klik wybiera zawsze punkt hali. Esc kończy.')};
+$('#bC').onclick=()=>{meas=[];mp=null;mOpen.clear();all();say('Usunięto pomiary.')};
+$('#bQ').onclick=()=>{if(mode=='pmeasure'){setMode(null);draw();return say('Zakończono mierzenie. Pomiary zostają na rysunku; „Wyczyść pomiary” je usuwa.')}
+ setMode('pmeasure');draw();say('Kliknij pierwszy punkt na obwodzie elementu, przeszkody, dźwigu (także jego punkt wstawienia i okrąg zasięgu) lub hali, potem drugi. Wierzchołki mają pierwszeństwo przed punktami na krawędzi. Punkty podążają za elementem. Esc kończy.')};
+$('#ff').onchange=e=>{fFrom=e.target.value;list()};$('#ft').onchange=e=>{fTo=e.target.value;list()};
+$('#fd').onclick=()=>{fFrom=fTo=fromD(day);$('#ff').value=fFrom;$('#ft').value=fTo;list()};
+$('#fc').onclick=()=>{fFrom=fTo='';$('#ff').value=$('#ft').value='';list()};
+$('#bF').onclick=()=>{fit();draw()};
+// Kolizje w całej historii: konfiguracja zmienia się tylko w "dniach zdarzeń" (start, dzień po końcu, wpisy historii),
+// więc wystarczy sprawdzić jeden dzień z każdego przedziału między nimi.
+function scanAll(){
+ const E=new Set();els.forEach(e=>{E.add(toD(e.start));E.add(toD(e.end)+1);(e.hist||[]).forEach(k=>E.add(toD(k.d)))});
+ const ds=[...E].sort((a,b)=>a-b),keep=day,items=new Map();
+ const add=(key,o,a,b)=>{let it=items.get(key);if(!it){it=Object.assign({r:[]},o);items.set(key,it)}const l=it.r[it.r.length-1];if(l&&l[1]+1>=a)l[1]=Math.max(l[1],b);else it.r.push([a,b])};
+ try{for(let i=0;i<ds.length-1;i++){day=ds[i];const from=day,to=ds[i+1]-1,R=clash();
+  R.pairs.forEach(([a,b])=>add(a.id+'|'+b.id,{t:els.includes(b)?'pair':'obs',a,b},from,to));
+  R.out.forEach(e=>add(e.id+'|h',{t:'hall',a:e},from,to))}}finally{day=keep}
+ return{items:[...items.values()],ds}}
+function showScan(){
+ if(!els.length)return say('Brak elementów do sprawdzenia.');
+ const{items,ds}=scanAll(),w=$('#kw'),B=$('#kb');w.hidden=false;
+ const rg=r=>r[0]==r[1]?pl(fromD(r[0])):pl(fromD(r[0]))+' – '+pl(fromD(r[1])),cnt=r=>r[1]-r[0]+1;
+ const rows=[];items.forEach(it=>it.r.forEach(r=>rows.push({it,r})));rows.sort((x,y)=>x.r[0]-y.r[0]);
+ const span=pl(fromD(ds[0]))+' – '+pl(fromD(ds[ds.length-1]-1));
+ B.innerHTML='<p class="kn">Sprawdzony okres: '+span+'. Domyślny minimalny odstęp: '+fmt(margin)+' '+unit+' (elementy mogą mieć własny). Wynik z chwili sprawdzenia – po zmianach sprawdź ponownie (↻).</p>'+(rows.length?'':'<p class="emp">Brak kolizji w całym okresie produkcji.</p>');
+ rows.forEach(({it,r})=>{const d=document.createElement('div');d.className='kr'+(it.t=='hall'?' w':'');
+  const nm=it.t=='hall'?esc(it.a.name)+' – obrys hali':esc(it.a.name)+' × '+esc(it.b.name),
+   ty=it.t=='pair'?'kolizja elementów':it.t=='obs'?'kolizja z przeszkodą':'poza obrysem hali lub zbyt blisko ściany';
+  d.innerHTML=`<div class="tx"><b>${nm}</b><small>${ty} · ${rg(r)} (${cnt(r)} ${cnt(r)==1?'dzień':'dni'})</small></div><button>Idź</button>`;
+  d.querySelector('button').onclick=()=>{day=r[0];sel=it.a.id;selO=null;all();say('Dzień '+fromD(day)+': początek zakresu kolizji „'+it.a.name+'”.')};
+  B.append(d)});
+ say(rows.length?'Wykryte zakresy kolizji w całym okresie: '+rows.length+'. Szczegóły w oknie „Kolizje”.':'Brak kolizji w całym okresie produkcji ('+span+').')}
+$('#bK').onclick=showScan;$('#kr').onclick=showScan;$('#kx').onclick=()=>{$('#kw').hidden=true};
+
+(()=>{const w=$('#ow');$('#ox').onclick=()=>w.hidden=true;$('#bW').onclick=()=>{w.hidden=!w.hidden;if(!w.hidden)list()}})();
+addEventListener('keydown',e=>{const k=e.key,typing=['INPUT','TEXTAREA'].includes(document.activeElement&&document.activeElement.tagName);
+ if((e.ctrlKey||e.metaKey)&&k.toLowerCase()=='s'){e.preventDefault();saveProj(e.shiftKey)}
+ else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()=='z'&&!e.shiftKey){if(!typing){e.preventDefault();undoKey()}}
+ else if((e.ctrlKey||e.metaKey)&&(k.toLowerCase()=='y'||(k.toLowerCase()=='z'&&e.shiftKey))){if(!typing){e.preventDefault();redoKey()}}
+ else if(mode=='obs'&&k=='Enter')finishObs();
+ else if(mode&&k=='Escape'){const pm=mode;setMode(null);draw();say(pm=='obs'?'Anulowano rysowanie przeszkody.':'Zakończono mierzenie. Pomiary zostają na rysunku; „Wyczyść pomiary” je usuwa.')}
+ else if(!mode&&!typing&&k=='Delete'&&selO){obs=obs.filter(o=>o.id!=selO);selO=null;all()}
+ else if(!mode&&!typing&&(k=='ArrowLeft'||k=='ArrowRight')){e.preventDefault();goDay(day+(k=='ArrowRight'?1:-1))}
+ else if(!mode&&!typing&&k=='F2'){e.preventDefault();renameSelected()}
+ else if(!mode&&!typing&&k=='Delete'&&sel){delSelected()}
+ else if(!mode&&!typing&&k=='Delete'&&selC){delCrane(selC)}});
+if(window.api)api.onSaveAndClose(async()=>{if(await saveProj(false))api.closeNow()});
+else addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+saved=state();
+// ---- wybór widocznych ikon paska (ustawienie aplikacji, zapamiętywane na komputerze) ----
+const HK='planer.ukryteIkony';
+const loadHidden=()=>{try{return new Set(JSON.parse(localStorage.getItem(HK)||'[]'))}catch(e){return new Set()}};
+const saveHidden=s=>{try{localStorage.setItem(HK,JSON.stringify([...s]))}catch(e){}};
+function applyTB(){const hid=loadHidden(),E=document.querySelectorAll('#tb > *');let any=false,sp=null;
+ TB.forEach((t,i)=>{const el=E[i];if(!el)return;
+  if(!t){el.hidden=true;sp=el;return}
+  const vis=t[0]=='bT'||!hid.has(t[0]);el.hidden=!vis;
+  if(vis){if(any&&sp)sp.hidden=false;sp=null;any=true}})}
+(()=>{const w=$('#tw'),b=$('#twb');
+ function render(){const hid=loadHidden();b.innerHTML='';
+  TB.forEach(t=>{if(!t||t[0]=='bT')return;const l=document.createElement('label');l.className='tl';
+   l.innerHTML=`<input type="checkbox" ${hid.has(t[0])?'':'checked'}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[t[3]]}"/></svg><span>${t[2]}</span>`;
+   l.querySelector('input').onchange=e=>{const s=loadHidden();if(e.target.checked)s.delete(t[0]);else s.add(t[0]);saveHidden(s);applyTB()};
+   b.append(l)})}
+ $('#bT').onclick=()=>{w.hidden=!w.hidden;if(!w.hidden)render()};
+ $('#twx').onclick=()=>{w.hidden=true};
+ $('#twa').onclick=()=>{saveHidden(new Set());applyTB();render()};
+ addEventListener('keydown',e=>{if(e.key=='Escape'&&!w.hidden)w.hidden=true})})();
+// ---- dodawanie elementu przez wpisanie wymiarów gabarytowych (prostokąt lub okrąg) ----
+(()=>{const w=$('#dw');
+ const sync=()=>{const c=$('#dws').value=='c';$('#dwl1').textContent=c?'Średnica':'Długość';$('#dwr2').hidden=c};
+ const open=()=>{w.hidden=false;$('#dwa').value=fromD(day);$('#dwz').value=fromD(day+7);$('#dwm').textContent='';sync();if($('#dwn').focus)$('#dwn').focus()};
+ const add=()=>{const m=$('#dwm'),c=$('#dws').value=='c',nm=$('#dwn').value.trim()||('Element '+(els.length+1)),L=num($('#dw1').value),W=c?L:num($('#dw2').value),s=$('#dwa').value,f=$('#dwz').value;
+  if(!(L>0)||!(W>0)){m.textContent=c?'Podaj średnicę większą od zera (w mm).':'Podaj długość i szerokość większe od zera (w mm).';return}
+  if(Math.max(L,W)>1e6){m.textContent='Wymiar jest zbyt duży (maksymalnie 1 000 000 mm).';return}
+  if(!s||!f){m.textContent='Podaj daty rozpoczęcia i zakończenia.';return}
+  if(f<s){m.textContent='Data zakończenia nie może być wcześniejsza niż data rozpoczęcia.';return}
+  const sh=c?[{c:1,p:Array.from({length:36},(_,k)=>[L/2*Math.cos(k*Math.PI/18),L/2*Math.sin(k*Math.PI/18)])}]:[{c:1,p:[[0,0],[L,0],[L,W],[0,W]]}];
+  const off=(els.length%6)*200,vx=(cv.clientWidth/2-V.x)/V.k+off,vy=-(cv.clientHeight/2-V.y)/V.k-off;
+  addEl(nm,sh,vx,vy,toD(s),toD(f));sel=els[els.length-1].id;selO=null;all();
+  say('Dodano element „'+nm+'” ('+(c?'Ø '+fmt(L):fmt(L)+' × '+fmt(W))+' mm), produkcja '+pl(s)+' – '+pl(f)+'. Leży na środku widoku; przeciągnij go na miejsce.'+(toD(s)<=day&&day<=toD(f)?'':' Nie jest aktywny w wybranym dniu – ustaw dzień w kalendarzu, aby go zobaczyć.'));
+  $('#dwn').value='';m.textContent='Dodano „'+nm+'”. Możesz wpisać kolejny element.';if($('#dwn').focus)$('#dwn').focus()};
+ $('#bD').onclick=open;$('#dwx').onclick=()=>{w.hidden=true};$('#dwo').onclick=add;$('#dws').onchange=sync;
+ ['dwn','dw1','dw2','dwa','dwz'].forEach(id=>$('#'+id).onkeydown=e=>{if(e.key=='Enter')add()});
+ addEventListener('keydown',e=>{if(e.key=='Escape'&&!w.hidden)w.hidden=true})})();
+function delSelected(){const e=els.find(z=>z.id==sel);if(!e)return;if(!confirm('Usunąć element „'+e.name+'” z planu?'))return;
+ els=els.filter(z=>z!==e);gapShow.delete(e.id);openIds.delete(e.id);sel=null;all();say('Usunięto element „'+e.name+'”.')}
+// ---- dźwigi: zarys z DXF (punkt 0,0 = punkt wstawienia) + okrąg zasięgu; jeden dzień; poza kolizjami ----
+const CRC='#a0680a',openC=new Set();let craneAll=false;
+// kąt etykiety dźwigu: obraca się razem z obrysem, ale tekst nie staje do góry nogami (powyżej 90° obracany o 180°)
+const rdAng=a=>{a=norm(a);return a>90&&a<=270?a-180:a};
+function craneWorld(c){const r=c.rot*Math.PI/180,co=Math.cos(r),si=Math.sin(r);return c.sh.map(s=>({c:s.c,p:s.p.map(([x,y])=>[x*co-y*si+c.x,x*si+y*co+c.y])}))}
+function hitCrane(c,wx,wy){if(Math.hypot(wx-c.x,wy-c.y)<=14/V.k)return true;const q=bbox(craneWorld(c));return q[0]<1e17&&wx>=q[0]&&wx<=q[2]&&wy>=q[1]&&wy<=q[3]}
+function drawCrane(c){const[px,py]=P(c.x,c.y),on=c.id==selC;
+ cx.save();cx.fillStyle='rgba(160,104,10,.06)';cx.strokeStyle=CRC;cx.lineWidth=on?2.4:1.6;cx.setLineDash([10,6]);cx.beginPath();cx.arc(px,py,c.r*V.k,0,7);cx.fill();cx.stroke();cx.setLineDash([]);
+ cx.beginPath();path(craneWorld(c));cx.globalAlpha=.3;cx.fillStyle=CRC;cx.fill();cx.globalAlpha=1;cx.lineWidth=on?3:2;cx.stroke();
+ cx.beginPath();cx.moveTo(px-6,py);cx.lineTo(px+6,py);cx.moveTo(px,py-6);cx.lineTo(px,py+6);cx.stroke();
+ const t=c.name+' · R '+fmt(c.r)+' mm';cx.font='12px Segoe UI';cx.textAlign='center';const w=cx.measureText(t).width+10;
+ cx.translate(px,py);cx.rotate(-rdAng(c.rot)*Math.PI/180);
+ cx.fillStyle='#fff';cx.fillRect(-w/2,-26,w,17);cx.fillStyle=CRC;cx.fillText(t,0,-13);cx.restore()}
+const cval=(c,f)=>f=='n'?c.name:f=='d'?c.day:f=='r'?String(c.r).replace('.',','):ang(c.rot);
+function craneSet(c,f,v){v=String(v).trim();
+ if(f=='n'){if(!v)return'Podaj nazwę dźwigu.';if(cranes.some(z=>z!==c&&z.day==c.day&&z.name.toLowerCase()==v.toLowerCase()))return'Dźwig „'+v+'” już istnieje w tym dniu.';c.name=v}
+ else if(f=='d'){if(!v)return'Podaj dzień.';if(cranes.some(z=>z!==c&&z.day==v&&z.name.toLowerCase()==c.name.toLowerCase()))return'W dniu '+pl(v)+' jest już dźwig „'+c.name+'”. Zmień najpierw etykietę.';c.day=v}
+ else if(f=='r'){const r=dimv(v);if(!(r>0)||r>1e6)return'Promień musi być liczbą większą od zera (w mm, maksymalnie 1 000 000).';if(c.rmax&&r>c.rmax)return'Promień nie może przekraczać maksymalnego promienia dźwigu ('+fmt(c.rmax)+' mm).';c.r=r}
+ else if(f=='a'){const a=num(v);if(isNaN(a))return'Kąt musi być liczbą (w stopniach).';c.rot=norm(a)}
+ return''}
+function delCrane(id){const c=cranes.find(z=>z.id==id);if(!c)return;if(!confirm('Usunąć dźwig „'+c.name+'” z planu?'))return;cranes=cranes.filter(z=>z!==c);openC.delete(id);if(selC==id)selC=null;all();say('Usunięto dźwig „'+c.name+'”.')}
+function listCranes(L){const today=fromD(day),vis=cranes.filter(c=>craneAll||c.day==today);
+ if(!vis.length){const m=document.createElement('p');m.className='emp';
+  m.textContent=cranes.length?'Brak dźwigów w wybranym dniu (w projekcie: '+cranes.length+'). Zaznacz „Pokaż dźwigi ze wszystkich dni”, aby zobaczyć pozostałe.':'Brak dźwigów w projekcie. Dodaj je z biblioteki dźwigów (przycisk „Dźwigi” na pasku).';L.append(m);return}
+ vis.forEach(c=>{const op=openC.has(c.id),d=document.createElement('div'),on=true,q=s=>d.querySelector(s);
+  d.className='er'+(c.id==selC?' sel':'');d.dataset.id='c'+c.id;d.style.borderLeftColor=CRC;
+  d.innerHTML=`<div class="eh" data-a="sel">${on?'<i class="live" title="Dźwig jest na planie w wybranym dniu"></i>':''}<div class="tx"><b>${esc(c.name)}</b><small>Dźwig · ${pl(c.day)} · R ${fmt(c.r)} mm</small></div><button class="ex" data-a="cdup" title="Duplikuj dla innego dnia" aria-label="Duplikuj dźwig „${escA(c.name)}” dla innego dnia">⧉</button><button class="ex" data-a="ex" title="${op?'Zwiń':'Rozwiń'} szczegóły" aria-expanded="${op}">${op?'▴':'▾'}</button></div>`+(op?`<div class="ed">
+<div class="row"><label>Etykieta</label><input type="text" data-cn value="${escA(c.name)}"></div>
+<div class="row"><label>Dzień</label><input type="date" data-cd value="${c.day}"></div>
+<div class="row"><label>Promień</label><input type="text" inputmode="decimal" data-cr value="${cval(c,'r')}"${c.rmax?` title="Maksymalny promień tego dźwigu: ${fmt(c.rmax)} mm"`:''}><span>mm${c.rmax?' (maks. '+fmt(c.rmax)+')':''}</span></div>
+<div class="row"><label>Obrót</label><button class="b5" data-a="cl" title="Obróć o 5° w lewo (wokół punktu wstawienia)">↺ 5°</button><input type="text" inputmode="decimal" data-ca value="${cval(c,'a')}"><span>°</span><button class="b5" data-a="ct" title="Obróć o 5° w prawo (wokół punktu wstawienia)">5° ↻</button></div>
+<div class="row rb">${(c.tx&&c.tx.length)?`<button class="sqs${c.txHide?' on':''}" data-a="ctx" title="${c.txHide?'Pokaż':'Ukryj'} teksty z pliku DXF tego dźwigu (${c.tx.length})" aria-label="${c.txHide?'Pokaż':'Ukryj'} teksty (${c.tx.length})"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC.text}"/></svg></button>`:''}<button data-a="cdup" title="Skopiuj dźwig na inny dzień (zarys, położenie, obrót i promień bez zmian)">Duplikuj dla innego dnia</button><button data-a="cd">Usuń</button></div></div>`:'');
+  d.onclick=ev=>{const t=ev.target.closest('[data-a]'),a=t&&t.dataset.a;
+   if(ev.target.tagName=='INPUT'||!a){if(selC!=c.id){selC=c.id;sel=null;selO=null;document.querySelectorAll('#xwb .er').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');draw()}return}
+   let m='';
+   if(a=='ex'){if(op)openC.delete(c.id);else{openC.clear();openC.add(c.id)}selC=c.id;sel=null;selO=null}
+   else if(a=='sel'){selC=c.id;sel=null;selO=null;openC.clear();openC.add(c.id)}
+   else if(a=='cl'||a=='ct'){c.rot=norm(c.rot+(a=='cl'?5:-5));m='Obrócono dźwig „'+c.name+'” o 5° '+(a=='cl'?'w lewo':'w prawo')+' (obrót: '+ang(c.rot)+'°).'}
+   else if(a=='ctx'){c.txHide=!c.txHide;m=(c.txHide?'Ukryto':'Pokazano')+' teksty dźwigu „'+c.name+'”.'+(txHideAll?' Uwaga: wszystkie teksty są ukryte zbiorczo (przycisk „Teksty” na pasku).':'')}
+   else if(a=='cdup'){dupCrane(c);return}
+   else if(a=='cd'){delCrane(c.id);return}
+   all();if(m)say(m)};
+  if(op)[['[data-cn]','n'],['[data-cd]','d'],['[data-cr]','r'],['[data-ca]','a']].forEach(([s,f])=>{const i=q(s);i.onchange=()=>{const er=craneSet(c,f,i.value);i.value=cval(c,f);if(er){say(er);return}
+   q('.eh b').textContent=c.name;q('.eh small').textContent='Dźwig · '+pl(c.day)+' · R '+fmt(c.r)+' mm';draw();chk();if(f=='d')list()}});
+  L.append(d)})}
+function dupCrane(c){const nd=fromD(toD(c.day)+1);
+ askDlg({title:'Duplikuj dźwig',intro:'Dźwig „'+esc(c.name)+'” (dzień '+pl(c.day)+') zostanie skopiowany na wskazany dzień. Zarys, położenie, obrót i promień zasięgu ('+fmt(c.r)+' mm) zostają bez zmian; po skopiowaniu możesz je zmienić na karcie kopii.',
+  fields:[{id:'d',label:'Dzień kopii',type:'date',value:nd},{id:'n',label:'Etykieta',value:c.name}],ok:'Duplikuj',
+  onOk:v=>{const n=v.n.trim();if(!v.d)return'Podaj dzień kopii.';if(!n)return'Podaj etykietę.';
+   if(cranes.some(z=>z.day==v.d&&z.name.toLowerCase()==n.toLowerCase()))return'W dniu '+pl(v.d)+' jest już dźwig „'+n+'”. Zmień etykietę albo dzień.';
+   const k=Object.assign({},c,{id:uid++,name:n,day:v.d,sh:JSON.parse(JSON.stringify(c.sh)),tx:JSON.parse(JSON.stringify(c.tx||[]))});cranes.push(k);
+   if(v.d==fromD(day)){selC=k.id;sel=null;selO=null;openC.clear();openC.add(k.id);scrollSel=true}all();
+   say('Skopiowano dźwig „'+n+'” na dzień '+pl(v.d)+'. '+(v.d==fromD(day)?'Jest widoczny na liście i na podglądzie.':'Wybierz ten dzień w kalendarzu, aby go zobaczyć.'))}})}
+function renderXW(){const w=$('#xw');if(!w||w.hidden)return;const B=$('#xwb'),today=fromD(day);B.innerHTML='';listCranes(B);
+ const n=cranes.filter(c=>craneAll||c.day==today).length;$('#xwt').textContent=craneAll?'Dźwigi w projekcie ('+n+')':'Dźwigi dnia '+pl(today)+' ('+n+')';
+ if(scrollSel&&selC){const s=B.querySelector('.er.sel');if(s&&s.scrollIntoView)s.scrollIntoView({block:'nearest'})}}
+function addCraneFromLib(i){const it=clib[i];if(!it)return;
+ const taken=(n,d)=>cranes.some(c=>c.day==d&&c.name.toLowerCase()==n.toLowerCase());let k=1;while(taken(it.name+' '+k,fromD(day)))k++;
+ askDlg({title:'Dodaj dźwig z biblioteki',intro:'Dźwig „'+esc(it.name)+'”'+(it.rmax?' (maksymalny promień '+fmt(it.rmax)+' mm)':'')+'. Punkt 0,0 rysunku jest punktem wstawienia, a wokół niego rysowany jest okrąg zasięgu o podanym promieniu. Dźwig jest wstawiany tylko na jeden dzień i nie bierze udziału w kolizjach.',
+  fields:[{id:'n',label:'Nazwa dźwigu',value:it.name+' '+k},{id:'d',label:'Dzień',type:'date',value:fromD(day)},{id:'r',label:'Promień [mm]',value:it.rmax?String(it.rmax).replace('.',','):'',ph:'np. 25000'}],ok:'Dodaj dźwig',
+  onOk:v=>{const n=v.n.trim();if(!n)return'Podaj nazwę dźwigu.';if(!v.d)return'Podaj dzień.';if(taken(n,v.d))return'W dniu '+pl(v.d)+' jest już dźwig „'+n+'”. Wpisz inną nazwę.';
+   const r=dimv(v.r);if(!(r>0)||r>1e6)return'Podaj promień zasięgu większy od zera (w mm, maksymalnie 1 000 000).';
+   if(it.rmax&&r>it.rmax)return'Promień zasięgu nie może przekraczać maksymalnego promienia dźwigu ('+fmt(it.rmax)+' mm).';
+   const hb=hall.length?bbox(hall):null,off=(cranes.length%6)*500,x0=hb?(hb[0]+hb[2])/2:(cv.clientWidth/2-V.x)/V.k,y0=hb?(hb[1]+hb[3])/2:-(cv.clientHeight/2-V.y)/V.k;
+   const c={id:uid++,name:n,sh:JSON.parse(JSON.stringify(it.sh)),x:x0+off,y:y0-off,rot:0,r,day:v.d};if(it.rmax)c.rmax=it.rmax;if(it.tx&&it.tx.length)c.tx=JSON.parse(JSON.stringify(it.tx));cranes.push(c);selC=c.id;sel=null;selO=null;openC.clear();openC.add(c.id);scrollSel=true;all();
+   say('Dodano dźwig „'+n+'” na dzień '+pl(v.d)+', promień zasięgu '+fmt(r)+' mm. Przeciągnij go na miejsce.'+(v.d==fromD(day)?'':' Nie jest widoczny w wybranym dniu – ustaw dzień w kalendarzu.'))}})}
+function askLibCrane(base,shapes){const[gw,gh]=gab(shapes);
+ return new Promise(res=>askDlg({title:'Dźwig do biblioteki dźwigów',intro:'Zarys z pliku „'+esc(base)+'”, gabaryty '+dimTxt(gw,gh)+'. Punkt 0,0 rysunku zostanie punktem wstawienia dźwigu. Maksymalny promień to największy zasięg dźwigu; przy dodawaniu na plan promień zasięgu nie może go przekroczyć. Nazwa musi być unikalna w bibliotece dźwigów (biblioteka elementów jest osobna).',
+  fields:[{id:'n',label:'Nazwa w bibliotece',value:base},{id:'m',label:'Maks. promień [mm]',value:'',ph:'np. 30000'}],ok:'Zapisz w bibliotece dźwigów',
+  onOk:v=>{const n=v.n.trim();if(!n)return'Podaj nazwę.';if(clib.some(x=>x.name.toLowerCase()==n.toLowerCase()))return'W bibliotece dźwigów jest już pozycja „'+n+'”. Wpisz inną nazwę.';
+   const m=dimv(v.m);if(!(m>0)||m>1e6)return'Podaj maksymalny promień dźwigu większy od zera (w mm, maksymalnie 1 000 000).';
+   clib.push({name:n,sh:shapes,w:gw,h:gh,rmax:m,tx:shapes.texts||[]});clib.sort((a,b)=>a.name.localeCompare(b.name,'pl'));renderCLib();
+   clibSave().then(ok=>{if(ok)say('Zapisano dźwig „'+n+'” w bibliotece dźwigów ('+dimTxt(gw,gh)+', maksymalny promień '+fmt(m)+' mm). Dodasz go na plan przyciskiem „Dodaj” w tej bibliotece.')});res(true)},
+  onCancel:()=>res(false)}))}
+function renderCLib(){const B=$('#cwb');$('#cwt').textContent='Biblioteka dźwigów ('+clib.length+')';
+ B.innerHTML=clib.length?'':'<p class="emp">Biblioteka dźwigów jest pusta. Kliknij „+ Dźwig z DXF” i wskaż plik z zarysem dźwigu; punkt 0,0 rysunku będzie punktem wstawienia.</p>';
+ clib.forEach((it,i)=>{const d=document.createElement('div');d.className='er';d.style.borderLeftColor=CRC;
+  d.innerHTML=`<div class="eh" style="cursor:default">${prev(it.sh,true)}<div class="tx"><b>${esc(it.name)}</b><small>${dimTxt(it.w,it.h)}${it.rmax?' · maks. promień '+fmt(it.rmax)+' mm':''}</small></div><button data-a="add" title="Dodaj dźwig do planu">Dodaj</button><button data-a="del" title="Usuń z biblioteki dźwigów" aria-label="Usuń z biblioteki dźwigów">×</button></div>`;
+  d.onclick=ev=>{const t=ev.target.closest('[data-a]'),a=t&&t.dataset.a;
+   if(a=='add')addCraneFromLib(i);
+   else if(a=='del'&&confirm('Usunąć „'+it.name+'” z biblioteki dźwigów? Dźwigi już dodane do planu pozostaną.')){clib.splice(i,1);renderCLib();clibSave()}};
+  B.append(d)})}
+// F2: zmiana etykiety zaznaczonego elementu (w miejscu na karcie, a gdy karta jest ukryta przez filtr dat – w oknie dialogowym)
+function renameDlg(e){askDlg({title:'Zmień etykietę',intro:'Element „'+esc(e.name)+'”. Etykieta musi być unikalna.',fields:[{id:'n',label:'Etykieta',value:e.name}],ok:'Zapisz',
+ onOk:v=>{const n=v.n.trim();if(!n)return'Podaj etykietę.';
+  if(els.some(z=>z!==e&&z.name.toLowerCase()==n.toLowerCase()))return'Element „'+n+'” już istnieje. Wpisz inną etykietę.';
+  if(n!=e.name){const old=e.name;e.name=n;chk();all();say('Zmieniono etykietę „'+old+'” na „'+n+'”.')}}})}
+function renameSelected(){const e=els.find(z=>z.id==sel);if(!e)return say('Zaznacz element, aby zmienić jego etykietę (F2).');
+ const d=[...document.querySelectorAll('#list .er')].find(x=>x.dataset&&x.dataset.id==sel);
+ if(d){if(d.scrollIntoView)d.scrollIntoView({block:'nearest'});startRename(e,d)}else renameDlg(e)}
+// okno po imporcie zarysu: etykieta, daty i odstęp przed wstawieniem na plan (zwraca obietnicę rozstrzygniętą po zamknięciu okna)
+// ---- element złożony: import pliku DXF/DWG z blokami; każdy blok pierwszego poziomu to osobna część (nazwa, daty, podgląd w tabeli) ----
+function parseCadParts(t){const f=unitF(impU),r=parseDXF(t,{parts:true});
+ r.parts=r.parts.map(p=>{const S=Object.assign(p.sh,{texts:p.tx}),o=rescaleDxf(prep(S),f);return{name:p.name,sh:Array.from(o),tx:o.texts||[]}}).filter(p=>p.sh.length);return r}
+function thumbShapes(c,S){if(!c||!c.getContext)return;const g=c.getContext('2d'),W=c.width||120,H=c.height||72;g.clearRect(0,0,W,H);if(!S.length)return;
+ const b=bbox(S),w=b[2]-b[0],hh=b[3]-b[1],k=Math.min((W-8)/Math.max(w,1e-9),(H-8)/Math.max(hh,1e-9)),X=x=>4+(x-b[0])*k+((W-8)-w*k)/2,Y=y=>H-4-(y-b[1])*k-((H-8)-hh*k)/2;
+ let pts=0;S.forEach(s=>pts+=s.p.length);const step=Math.max(1,Math.ceil(pts/4000));g.strokeStyle='#44525c';g.lineWidth=1;
+ S.forEach((s,i)=>{if(i%step||s.p.length<2)return;g.beginPath();s.p.forEach(([x,y],j)=>j?g.lineTo(X(x),Y(y)):g.moveTo(X(x),Y(y)));if(s.c)g.closePath();g.stroke()})}
+function addComposite(name,parts,gp){
+ const co=compositeOutline(parts),b=bbox(co.shapes),cx_=(b[0]+b[2])/2,cy_=(b[1]+b[3])/2,hb=bbox(hall.length?hall:co.shapes),off=(els.length%6)*200;
+ addEl(name,co.shapes,(hb[0]+hb[2])/2+off,(hb[1]+hb[3])/2-off,toD(parts[0].start),toD(parts[0].end));
+ const e=els[els.length-1],mv=s=>s.map(q=>({c:q.c,p:q.p.map(([u,v])=>[u-cx_,v-cy_])}));
+ e.parts=parts.map(p=>({name:p.name,start:p.start,end:p.end,sh:mv(p.sh),tx:(p.tx||[]).map(t=>Object.assign({},t,{x:t.x-cx_,y:t.y-cy_}))}));
+ recalcComp(e);if(gp!==undefined)e.gap=gp;sel=e.id;selO=null;all();
+ const[gw,gh]=gab(e.sh);say('Dodano element złożony „'+name+'” ('+parts.length+' części, obrys zewnętrzny: '+co.how+', '+dimTxt(gw,gh)+'), produkcja '+pl(e.start)+' – '+pl(e.end)+(gp!==undefined?', odstęp '+fmt(gp)+' mm':'')+'.')}
+function askComposite(base,r){return new Promise(res=>{
+ const parts=r.parts,seen={},dn=parts.map(p=>{seen[p.name]=(seen[p.name]||0)+1;return seen[p.name]>1?p.name+' ('+seen[p.name]+')':p.name}),s0=fromD(day),z0=fromD(day+7);
+ const rows=parts.map((p,i)=>`<tr><td><canvas id="q_pc${i}" class="pcv" width="120" height="72"></canvas></td><td><input type="text" id="q_pn${i}" value="${escA(dn[i])}" aria-label="Nazwa części ${i+1}"></td><td><input type="date" id="q_ps${i}" value="${s0}" aria-label="Start części ${i+1}"></td><td><input type="date" id="q_pe${i}" value="${z0}" aria-label="Koniec części ${i+1}"></td></tr>`).join('');
+ askDlg({title:'Nowy element złożony',wide:true,
+  intro:'Plik „'+esc(base)+'”: '+parts.length+' bloków pierwszego poziomu, każdy będzie osobną częścią składową.'+(r.loose?' Obiekty poza blokami ('+r.loose+') są pomijane.':'')+' Ustaw etykietę całości, odstęp oraz nazwy i daty części. Obrys zewnętrzny całości obejmuje wszystkie części.',
+  fields:[{id:'n',label:'Etykieta',value:base.replace(/\.[^.]+$/,'')},{id:'s',label:'Start wszystkich',type:'date',value:s0},{id:'z',label:'Koniec wszystkich',type:'date',value:z0},{id:'g',label:'Odstęp [mm]',value:'',ph:'domyślny: '+fmt(margin)}],
+  extra:'<div class="ptw"><table class="pt"><thead><tr><th>Podgląd</th><th>Nazwa części</th><th>Start</th><th>Koniec</th></tr></thead><tbody>'+rows+'</tbody></table></div>',ok:'Wstaw na plan',
+  onOpen:()=>{parts.forEach((p,i)=>thumbShapes($('#q_pc'+i),p.sh));
+   $('#q_s').onchange=()=>{const v=$('#q_s').value;if(v)parts.forEach((p,i)=>{$('#q_ps'+i).value=v})};   // pola „wszystkich” ustawiają daty we wszystkich wierszach
+   $('#q_z').onchange=()=>{const v=$('#q_z').value;if(v)parts.forEach((p,i)=>{$('#q_pe'+i).value=v})}},
+  onOk:v=>{const nm=v.n.trim();if(!nm)return'Podaj etykietę elementu.';
+   if(els.some(e=>e.name.toLowerCase()==nm.toLowerCase()))return'Element „'+nm+'” już istnieje na planie. Wpisz inną etykietę.';
+   let gp;if(v.g.trim()){gp=dimv(v.g);if(isNaN(gp)||gp<0)return'Odstęp musi być liczbą nieujemną w mm albo zostaw pole puste.'}
+   const used=[],pr=[];
+   for(let i=0;i<parts.length;i++){const pn=$('#q_pn'+i).value.trim(),ps=$('#q_ps'+i).value,pe=$('#q_pe'+i).value;
+    if(!pn)return'Część '+(i+1)+': podaj nazwę.';
+    if(used.includes(pn.toLowerCase()))return'Nazwy części muszą być unikalne („'+pn+'” powtarza się).';used.push(pn.toLowerCase());
+    if(!ps||!pe)return'Część „'+pn+'”: podaj daty rozpoczęcia i zakończenia.';
+    if(pe<ps)return'Część „'+pn+'”: koniec nie może być wcześniejszy niż początek.';
+    pr.push({name:pn,start:ps,end:pe,sh:parts[i].sh,tx:parts[i].tx})}
+   addComposite(nm,pr,gp);res(true)},
+  onCancel:()=>{say('Pominięto plik „'+base+'”.');res(false)}})})}
+function askElem(base,shapes){const[gw,gh]=gab(shapes);
+ return new Promise(res=>askDlg({title:'Nowy element z zarysu',intro:'Zarys z pliku „'+esc(base)+'”, gabaryty '+dimTxt(gw,gh)+'. Ustaw etykietę i terminy przed wstawieniem na plan.'+(shapes.texts&&shapes.texts.length?' Teksty z pliku ('+shapes.texts.length+') zostaną dodane do elementu.':'')+' Krzyżyk lub Esc pomija ten plik.',
+  fields:[{id:'n',label:'Etykieta',value:base},{id:'s',label:'Start',type:'date',value:fromD(day)},{id:'z',label:'Koniec',type:'date',value:fromD(day+7)},{id:'g',label:'Odstęp [mm]',value:'',ph:'domyślny: '+fmt(margin)}],ok:'Wstaw na plan',
+  onOk:v=>{const nm=v.n.trim();if(!nm)return'Podaj etykietę elementu.';
+   if(els.some(e=>e.name.toLowerCase()==nm.toLowerCase()))return'Element „'+nm+'” już istnieje na planie. Wpisz inną etykietę.';
+   if(!v.s||!v.z)return'Podaj daty rozpoczęcia i zakończenia.';if(v.z<v.s)return'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia.';
+   let gp;if(v.g.trim()){gp=dimv(v.g);if(isNaN(gp)||gp<0)return'Odstęp musi być liczbą nieujemną w mm albo zostaw pole puste.'}
+   const b=bbox(hall.length?hall:shapes),off=(els.length%6)*200;addEl(nm,shapes,(b[0]+b[2])/2+off,(b[1]+b[3])/2-off,toD(v.s),toD(v.z),shapes.texts);
+   const e=els[els.length-1];if(gp!==undefined)e.gap=gp;sel=e.id;selO=null;all();
+   say('Dodano „'+nm+'” ('+dimTxt(gw,gh)+'), produkcja '+pl(v.s)+' – '+pl(v.z)+(gp!==undefined?', odstęp '+fmt(gp)+' mm':'')+'.');res(true)},
+  onCancel:()=>{say('Pominięto zarys „'+base+'”.');res(false)}}))}
+// ---- biblioteka elementów (ustawienie aplikacji: plik w folderze użytkownika, w przeglądarce localStorage) ----
+let lib=[],clib=[];const LK='planer.biblioteka',CK='planer.bibliotekaDzwigow';
+const escA=s=>esc(s).replace(/"/g,'&quot;');
+const gab=sh=>{const b=bbox(sh);return[b[2]-b[0],b[3]-b[1]]};
+async function libLoad(){try{lib=(window.api&&api.loadLib)?await api.loadLib():JSON.parse(localStorage.getItem(LK)||'[]')}catch(e){lib=[]}
+ if(!Array.isArray(lib))lib=[];
+ try{clib=(window.api&&api.loadCLib)?await api.loadCLib():JSON.parse(localStorage.getItem(CK)||'[]')}catch(e){clib=[]}
+ if(!Array.isArray(clib))clib=[];
+ const mv=lib.filter(x=>x.kind=='dzwig');   // dźwigi zapisane wcześniej we wspólnej bibliotece trafiają do biblioteki dźwigów
+ if(mv.length){lib=lib.filter(x=>x.kind!='dzwig');
+  mv.forEach(x=>{let n=x.name,k=2;while(clib.some(z=>z.name.toLowerCase()==n.toLowerCase()))n=x.name+' ('+(k++)+')';clib.push({name:n,sh:x.sh,w:x.w,h:x.h})});
+  clib.sort((a,b)=>a.name.localeCompare(b.name,'pl'));await libSave();await clibSave()}
+ renderLib();renderCLib()}
+async function clibSave(){try{if(window.api&&api.saveCLib)await api.saveCLib(clib);else localStorage.setItem(CK,JSON.stringify(clib));return true}
+ catch(e){say('Nie udało się zapisać biblioteki dźwigów: '+(e&&e.message||e));return false}}
+async function libSave(){try{if(window.api&&api.saveLib)await api.saveLib(lib);else localStorage.setItem(LK,JSON.stringify(lib));return true}
+ catch(e){say('Nie udało się zapisać biblioteki: '+(e&&e.message||e));return false}}
+// uniwersalne okno dialogowe z polami i walidacją (onOk zwraca tekst błędu albo nic, gdy się powiodło)
+let dlgCancel=null;
+function closeDlg(){const w=$('#qd'),c=dlgCancel;dlgCancel=null;w.hidden=true;if(c)c()}
+function askDlg(o){const w=$('#qd');if(!w.hidden)closeDlg();dlgCancel=o.onCancel||null;$('#qdt').textContent=o.title;$('#qdm').textContent='';
+ $('#qdb').innerHTML=(o.intro?'<p class="kn" style="margin:6px 0">'+o.intro+'</p>':'')+o.fields.map(f=>`<div class="row"><label>${f.label}</label>${f.options?`<div class="chks">${f.options.map(([v,t])=>`<label class="ck"><input type="checkbox" id="q_${f.id}_${escA(v)}"${v==f.value?' checked':''}> ${esc(t)}</label>`).join('')}</div>`:`<input type="${f.type||'text'}" id="q_${f.id}" value="${escA(f.value||'')}"${f.ph?` placeholder="${escA(f.ph)}"`:''}>`}</div>`).join('')+(o.extra||'');
+ $('#qdo').textContent=o.ok;w.classList.toggle('wide',!!o.wide);w.hidden=false;
+ const get=()=>{const v={};o.fields.forEach(f=>{if(f.options){const c=f.options.find(([ov])=>{const e=$('#q_'+f.id+'_'+ov);return e&&e.checked});v[f.id]=c?c[0]:f.value}else v[f.id]=$('#q_'+f.id).value});return v};
+ // grupa pól wyboru działa jak przełącznik: zaznaczenie jednego odznacza pozostałe, a ostatniego zaznaczonego nie da się odznaczyć
+ o.fields.filter(f=>f.options).forEach(f=>f.options.forEach(([ov])=>{const e=$('#q_'+f.id+'_'+ov);e.onchange=()=>{if(e.checked)f.options.forEach(([x])=>{if(x!=ov)$('#q_'+f.id+'_'+x).checked=false});else if(!f.options.some(([x])=>$('#q_'+f.id+'_'+x).checked))e.checked=true;if(o.onChange)o.onChange(get())}}));
+ const run=()=>{const r=o.onOk(get());if(r)$('#qdm').textContent=r;else{dlgCancel=null;w.hidden=true}};
+ o.fields.filter(f=>f.options).forEach(f=>f.options.forEach(([v])=>{$('#q_'+f.id+'_'+v).checked=(v==f.value)}));   // stan początkowy pól wyboru
+ const els=f=>f.options?f.options.map(([v])=>$('#q_'+f.id+'_'+v)):[$('#q_'+f.id)];
+ $('#qdo').onclick=run;o.fields.forEach(f=>els(f).forEach(e=>{e.onkeydown=ev=>{if(ev.key=='Enter')run()}}));
+ const first=o.fields[0]&&(o.fields[0].options?$('#q_'+o.fields[0].id+'_'+o.fields[0].value):$('#q_'+o.fields[0].id));if(first&&first.focus){first.focus();if(first.select)first.select()}else if($('#qdo').focus)$('#qdo').focus();
+ if(o.onOpen)o.onOpen(get())}
+const dimTxt=(w,h)=>fmt(w)+' × '+fmt(h)+' mm';
+function saveToLib(e){const[w,h]=gab(e.sh);
+ askDlg({title:'Zapisz w bibliotece',intro:'Element „'+esc(e.name)+'”, gabaryty '+dimTxt(w,h)+'. Nazwa w bibliotece musi być unikalna.',
+  fields:[{id:'n',label:'Nazwa w bibliotece',value:e.name}],ok:'Zapisz',
+  onOk:v=>{const n=v.n.trim();if(!n)return'Podaj nazwę.';
+   if(lib.some(x=>x.name.toLowerCase()==n.toLowerCase()))return'W bibliotece jest już pozycja „'+n+'”. Wpisz inną nazwę.';
+   lib.push({name:n,sh:JSON.parse(JSON.stringify(e.sh)),w,h,tx:JSON.parse(JSON.stringify(e.tx||[]))});lib.sort((a,b)=>a.name.localeCompare(b.name,'pl'));renderLib();
+   libSave().then(ok=>{if(ok)say('Zapisano „'+n+'” w bibliotece ('+dimTxt(w,h)+').')})}})}
+function addFromLib(i){const it=lib[i];if(!it)return;
+ const taken=n=>els.some(x=>x.name.toLowerCase()==n.toLowerCase());let k=1;while(taken(it.name+' '+k))k++;
+ askDlg({title:'Dodaj z biblioteki',intro:'Pozycja „'+esc(it.name)+'”, gabaryty '+dimTxt(it.w,it.h)+'. Nadaj nazwę temu wystąpieniu.',
+  fields:[{id:'n',label:'Nazwa elementu',value:it.name+' '+k},{id:'s',label:'Start',type:'date',value:fromD(day)},{id:'z',label:'Koniec',type:'date',value:fromD(day+7)}],ok:'Dodaj do planu',
+  onOk:v=>{const n=v.n.trim();if(!n)return'Podaj nazwę elementu.';if(taken(n))return'Element „'+n+'” już istnieje na planie. Wpisz inną nazwę.';
+   if(!v.s||!v.z)return'Podaj daty rozpoczęcia i zakończenia.';if(v.z<v.s)return'Data zakończenia nie może być wcześniejsza niż data rozpoczęcia.';
+   const off=(els.length%6)*200;addEl(n,JSON.parse(JSON.stringify(it.sh)),(cv.clientWidth/2-V.x)/V.k+off,-(cv.clientHeight/2-V.y)/V.k-off,toD(v.s),toD(v.z));if(it.tx&&it.tx.length)els[els.length-1].tx=JSON.parse(JSON.stringify(it.tx));
+   sel=els[els.length-1].id;selO=null;all();
+   say('Dodano „'+n+'” z biblioteki ('+dimTxt(it.w,it.h)+'), produkcja '+pl(v.s)+' – '+pl(v.z)+'. Leży na środku widoku; przeciągnij go na miejsce.'+(toD(v.s)<=day&&day<=toD(v.z)?'':' Nie jest aktywny w wybranym dniu.'))}})}
+function prev(sh,orig){const b=bbox(sh);if(orig){b[0]=Math.min(b[0],0);b[1]=Math.min(b[1],0);b[2]=Math.max(b[2],0);b[3]=Math.max(b[3],0)}const w=b[2]-b[0]||1,h=b[3]-b[1]||1,s=Math.min(52/w,36/h),f=(x,y)=>((x-b[0])*s+2).toFixed(1)+' '+(38-(y-b[1])*s).toFixed(1);
+ return'<svg class="pv" viewBox="0 0 56 40" aria-hidden="true"><path d="'+sh.map(q=>'M'+q.p.map(([x,y])=>f(x,y)).join('L')+(q.c?'Z':'')).join('')+'"/>'+(orig?(()=>{const[ox,oy]=f(0,0).split(' ').map(Number);return'<path style="fill:none;stroke:#a0680a;stroke-width:1.5" d="M'+(ox-4)+' '+oy+'h8M'+ox+' '+(oy-4)+'v8"/>'})():'')+'</svg>'}
+function renderLib(){const B=$('#lwb');$('#lwt').textContent='Biblioteka elementów ('+lib.length+')';
+ B.innerHTML=lib.length?'':'<p class="emp">Biblioteka jest pusta. Rozwiń element na liście i kliknij „Do biblioteki”.</p>';
+ lib.forEach((it,i)=>{const d=document.createElement('div');d.className='er';d.style.borderLeftColor='#6b7c8a';
+  d.innerHTML=`<div class="eh" style="cursor:default">${prev(it.sh)}<div class="tx"><b>${esc(it.name)}</b><small>${dimTxt(it.w,it.h)}</small></div><button data-a="add" title="Dodaj do planu">Dodaj</button><button data-a="del" title="Usuń z biblioteki" aria-label="Usuń z biblioteki">×</button></div>`;
+  d.onclick=ev=>{const t=ev.target.closest('[data-a]'),a=t&&t.dataset.a;
+   if(a=='add')addFromLib(i);
+   else if(a=='del'&&confirm('Usunąć „'+it.name+'” z biblioteki? Elementy już dodane do planu pozostaną.')){lib.splice(i,1);renderLib();libSave()}};
+  B.append(d)})}
+$('#bY').onclick=()=>{const w=$('#lw');w.hidden=!w.hidden;if(!w.hidden)renderLib()};
+$('#lwx').onclick=()=>{$('#lw').hidden=true};$('#cwx').onclick=()=>{$('#cw').hidden=true};$('#bU').onclick=()=>{const w=$('#cw');w.hidden=!w.hidden;if(!w.hidden)renderCLib()};$('#qdx').onclick=closeDlg;
+addEventListener('keydown',e=>{if(e.key=='Escape'){if(!$('#qd').hidden)closeDlg();else if(!$('#lw').hidden)$('#lw').hidden=true;else if(!$('#cw').hidden)$('#cw').hidden=true;else if(!$('#xw').hidden)$('#xw').hidden=true}});
+// ---- kalendarz z oznaczonymi dniami kolizji (czerwone: kolizje, pomarańczowe: poza halą lub zbyt blisko ściany) ----
+let calM=null,calDay=null,calDays=[];
+function colMap(){const map=new Map();if(!els.length)return{map,days:[]};
+ scanAll().items.forEach(it=>it.r.forEach(([a,b])=>{for(let d=a;d<=b;d++){let o=map.get(d);if(!o){o={red:[],org:[]};map.set(d,o)}
+  if(it.t=='hall')o.org.push(it.a.name+' – obrys hali');else o.red.push(it.a.name+' × '+it.b.name)}}));
+ return{map,days:[...map.keys()].sort((x,y)=>x-y)}}
+function renderCal(){const w=$('#cal');if(w.hidden)return;
+ if(!calM||calDay!==day){const t=new Date(day*864e5);calM={y:t.getUTCFullYear(),m:t.getUTCMonth()};calDay=day}
+ const{map,days}=colMap(),first=(new Date(Date.UTC(calM.y,calM.m,1)).getUTCDay()+6)%7,n=new Date(Date.UTC(calM.y,calM.m+1,0)).getUTCDate(),today=toD(new Date().toISOString().slice(0,10));
+ $('#cmt').textContent=new Date(Date.UTC(calM.y,calM.m,1)).toLocaleDateString('pl-PL',{month:'long',year:'numeric',timeZone:'UTC'});
+ let g=['Pn','Wt','Śr','Cz','Pt','So','Nd'].map(x=>'<span class="cw">'+x+'</span>').join('')+'<span></span>'.repeat(first);
+ for(let i=1;i<=n;i++){const d=Date.UTC(calM.y,calM.m,i)/864e5,o=map.get(d),tip=o?[...o.red,...o.org].slice(0,4).join('; '):'';
+  g+=`<button class="cdb${o?(o.red.length?' r':' o'):''}${d==day?' s':''}${d==today?' t':''}" data-d="${d}" title="${escA(tip)}" aria-label="${i}${tip?', kolizje: '+escA(tip):''}">${i}</button>`}
+ $('#cg').innerHTML=g;$('#cg').querySelectorAll('button').forEach(b=>b.onclick=()=>goDay(+b.dataset.d));
+ $('#cinfo').textContent=days.length?'Dni z kolizjami w całym planie: '+days.length+'.':'Brak kolizji w całym planie.';calDays=days}
+const colStart=(dir)=>{const S=new Set(calDays),starts=calDays.filter(x=>!S.has(x-1));return dir>0?starts.find(x=>x>day):[...starts].reverse().find(x=>x<day)};
+$('#dc').onclick=()=>{const w=$('#cal');w.hidden=!w.hidden;if(!w.hidden){calDay=null;renderCal()}};
+$('#cpm').onclick=()=>{if(!calM)return;calM.m--;if(calM.m<0){calM.m=11;calM.y--}renderCal()};
+$('#cnm').onclick=()=>{if(!calM)return;calM.m++;if(calM.m>11){calM.m=0;calM.y++}renderCal()};
+$('#cpc').onclick=()=>{const d=colStart(-1);if(d===undefined)say('Brak wcześniejszych dni z kolizjami.');else goDay(d)};
+$('#cnc').onclick=()=>{const d=colStart(1);if(d===undefined)say('Brak kolejnych dni z kolizjami.');else goDay(d)};
+addEventListener('keydown',e=>{if(e.key=='Escape'&&!$('#cal').hidden)$('#cal').hidden=true});
+addEventListener('mousedown',e=>{const t=e.target;if(!$('#cal').hidden&&t&&t.closest&&!t.closest('#cal')&&!t.closest('#dc'))$('#cal').hidden=true});
+// ---- import elementów z arkusza: .xlsx (własny czytnik ZIP + XML, bez zewnętrznych bibliotek) lub .csv ----
+const u16=(d,o)=>d[o]|d[o+1]<<8,u32=(d,o)=>(d[o]|d[o+1]<<8|d[o+2]<<16|d[o+3]<<24)>>>0;
+async function unzip(buf){const d=new Uint8Array(buf),dec=new TextDecoder(),files={};let e=-1;
+ for(let i=d.length-22;i>=Math.max(0,d.length-70000);i--)if(u32(d,i)==0x06054b50){e=i;break}
+ if(e<0)throw new Error('to nie jest prawidłowy plik .xlsx');
+ const n=u16(d,e+10);let p=u32(d,e+16);
+ for(let k=0;k<n;k++){if(u32(d,p)!=0x02014b50)break;const nl=u16(d,p+28),xl=u16(d,p+30),cl=u16(d,p+32);
+  files[dec.decode(d.subarray(p+46,p+46+nl))]={meth:u16(d,p+10),cs:u32(d,p+20),lo:u32(d,p+42)};p+=46+nl+xl+cl}
+ return{async read(name){const f=files[name];if(!f)return null;const ln=u16(d,f.lo+26),lx=u16(d,f.lo+28),s=f.lo+30+ln+lx,raw=d.subarray(s,s+f.cs);
+  if(f.meth==0)return dec.decode(raw);
+  if(typeof DecompressionStream=='undefined')throw new Error('ta wersja programu nie obsługuje rozpakowywania .xlsx – zapisz arkusz jako CSV');
+  return dec.decode(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}}}
+const xdec=s=>s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(_,c)=>String.fromCharCode(+c)).replace(/&#x([0-9a-f]+);/gi,(_,c)=>String.fromCharCode(parseInt(c,16))).replace(/&amp;/g,'&');
+const tText=x=>[...x.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>xdec(m[1])).join('');
+const colNo=r=>r.replace(/\d+/g,'').split('').reduce((a,c)=>a*26+c.charCodeAt(0)-64,0)-1;
+async function xlsxRows(buf){const z=await unzip(buf),wb=await z.read('xl/workbook.xml');if(!wb)throw new Error('nie znaleziono skoroszytu w pliku');
+ let path='xl/worksheets/sheet1.xml';const m=wb.match(/<sheet\b[^>]*?\br:id="([^"]+)"/),rels=await z.read('xl/_rels/workbook.xml.rels');
+ if(m&&rels)for(const t of rels.matchAll(/<Relationship\b[^>]*>/g)){if(t[0].includes('Id="'+m[1]+'"')){const g=t[0].match(/Target="([^"]+)"/);if(g)path=g[1].startsWith('/')?g[1].slice(1):'xl/'+g[1]}}
+ const ssx=await z.read('xl/sharedStrings.xml'),strs=ssx?[...ssx.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map(x=>tText(x[1].replace(/<rPh\b[\s\S]*?<\/rPh>/g,''))):[];
+ const sx=await z.read(path);if(!sx)throw new Error('nie znaleziono arkusza w pliku');
+ const rows=[];
+ for(const rm of sx.matchAll(/<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g)){const row=[];
+  for(const cm of(rm[1]||'').matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){const at=cm[1],ref=(at.match(/\br="([A-Z]+\d+)"/)||[])[1],t=(at.match(/\bt="(\w+)"/)||[])[1],body=cm[2]||'',v=(body.match(/<v>([\s\S]*?)<\/v>/)||[])[1];
+   let val='';if(t=='s')val=strs[+v]??'';else if(t=='inlineStr')val=tText(body);else if(v!==undefined)val=xdec(v);
+   const ci=ref?colNo(ref):row.length;row[ci]=val}
+  rows.push(Array.from(row,x=>x===undefined?'':x))}
+ return rows}
+function csvRows(t){t=t.replace(/^\uFEFF/,'');const first=t.split(/\r?\n/)[0]||'',cnt=c=>first.split(c).length-1,d=[';',',','\t'].sort((a,b)=>cnt(b)-cnt(a))[0];
+ const rows=[];let row=[],cur='',q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++}else q=false}else cur+=c}
+  else if(c=='"')q=true;else if(c==d){row.push(cur);cur=''}
+  else if(c=='\n'||c=='\r'){if(c=='\r'&&t[i+1]=='\n')i++;row.push(cur);cur='';rows.push(row);row=[]}else cur+=c}
+ if(cur!==''||row.length){row.push(cur);rows.push(row)}return rows}
+const nz=s=>String(s).toLowerCase().replace(/ł/g,'l').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+const XC={name:['nazwa','name','oznaczenie'],len:['dlugosc','length'],wid:['szerokosc','width'],dia:['srednica','diameter'],shape:['ksztalt','shape'],start:['start','poczatek','rozpoczecie'],end:['koniec','zakonczenie'],gap:['odstep','gap'],lib:['biblioteka','zarys','library']};
+const XE={start:['od','from'],end:['do','to'],len:['l'],wid:['w']};
+function mapCols(hdr){const m={};hdr.forEach((h,i)=>{const n=nz(h);for(const k in XC){if(m[k]!==undefined)continue;if(XC[k].some(x=>n.includes(x))||(XE[k]||[]).includes(n)){m[k]=i;break}}});return m}
+const isoD=(y,mo,d)=>{y=+y;mo=+mo;d=+d;const t=new Date(Date.UTC(y,mo-1,d));return t.getUTCFullYear()==y&&t.getUTCMonth()==mo-1&&t.getUTCDate()==d?fromD(Math.round(t/864e5)):null};
+function parseDate(v){const s=String(v==null?'':v).trim();if(!s)return null;
+ if(/^\d+(\.\d+)?$/.test(s)){const n=+s;return n>20000&&n<80000?fromD(Math.floor(n)-25569):null}   // numer seryjny daty z Excela
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return isoD(m[1],m[2],m[3]);
+ m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);return m?isoD(m[3],m[2],m[1]):null}
+const dimv=s=>num(String(s).replace(/\s*mm$/i,''));
+const mkShape=(c,L,W)=>c?[{c:1,p:Array.from({length:36},(_,k)=>[L/2*Math.cos(k*Math.PI/18),L/2*Math.sin(k*Math.PI/18)])}]:[{c:1,p:[[0,0],[L,0],[L,W],[0,W]]}];
+function rowsToElements(rows){const hi=rows.findIndex(r=>r.some(c=>String(c).trim()!==''));if(hi<0)return{err:'Plik jest pusty.'};
+ const m=mapCols(rows[hi]),need=[];if(m.name===undefined)need.push('Nazwa');if(m.start===undefined)need.push('Start');if(m.end===undefined)need.push('Koniec');
+ if(m.lib===undefined&&m.dia===undefined&&(m.len===undefined||m.wid===undefined))need.push('Długość i Szerokość (albo Średnica, albo Biblioteka)');
+ if(need.length)return{err:'Brak wymaganych kolumn: '+need.join(', ')+'. Pierwszy wiersz musi być nagłówkiem, np.: Nazwa; Długość; Szerokość; Start; Koniec.'};
+ const out=[],bad=[],seen=new Set(els.map(e=>e.name.toLowerCase()));
+ rows.slice(hi+1).forEach((r,k)=>{if(r.every(c=>String(c).trim()===''))return;const rn=hi+k+2,g=c=>c===undefined||r[c]===undefined?'':String(r[c]).trim();
+  const name=g(m.name),s=parseDate(g(m.start)),f=parseDate(g(m.end));let sh=null,why='',gap,dim='',tx;
+  if(!name)why='brak nazwy';else if(seen.has(name.toLowerCase()))why='nazwa „'+name+'” już istnieje (na planie lub wcześniej w pliku)';
+  else if(!s)why='nieprawidłowa data startu „'+g(m.start)+'”';else if(!f)why='nieprawidłowa data końca „'+g(m.end)+'”';else if(f<s)why='koniec przed startem';
+  if(!why){const lb=g(m.lib);
+   if(lb){const it=lib.find(x=>x.name.toLowerCase()==lb.toLowerCase());if(it){sh=JSON.parse(JSON.stringify(it.sh));tx=it.tx;dim='biblioteka: '+it.name+' ('+fmt(it.w)+' × '+fmt(it.h)+')'}else why='w bibliotece nie ma „'+lb+'”'}
+   else{const dd=m.dia!==undefined&&g(m.dia)?dimv(g(m.dia)):NaN,L=m.len!==undefined?dimv(g(m.len)):NaN,W=m.wid!==undefined?dimv(g(m.wid)):NaN,circ=/okrag|kolo|circle/.test(nz(g(m.shape)));
+    if(dd>0&&dd<=1e6){sh=mkShape(1,dd,dd);dim='Ø '+fmt(dd)}else if(circ&&L>0&&L<=1e6){sh=mkShape(1,L,L);dim='Ø '+fmt(L)}else if(L>0&&W>0&&L<=1e6&&W<=1e6){sh=mkShape(0,L,W);dim=fmt(L)+' × '+fmt(W)}else why='nieprawidłowe wymiary'}}
+  if(!why&&g(m.gap)){const v=dimv(g(m.gap));if(isNaN(v)||v<0)why='nieprawidłowy odstęp „'+g(m.gap)+'”';else gap=v}
+  if(why)bad.push('Wiersz '+rn+': '+why);else{seen.add(name.toLowerCase());out.push({name,sh,s,f,gap,rn,dim,tx})}});
+ return{out,bad}}
+// elementy układane od lewego górnego rogu hali, rzędami, z odstępem 300 mm
+function placeAll(list){const hb=hall.length?bbox(hall):null,x0=hb?hb[0]+300:(0-V.x)/V.k+300,maxX=hb?hb[2]-300:x0+20000;let x=x0,y=hb?hb[3]-300:-(0-V.y)/V.k-300,rowH=0;
+ list.forEach(it=>{const b=bbox(it.sh),w=b[2]-b[0],hh=b[3]-b[1];if(x>x0&&x+w>maxX){x=x0;y-=rowH+300;rowH=0}
+  addEl(it.name,it.sh,x+w/2,y-hh/2,toD(it.s),toD(it.f));const e=els[els.length-1];if(it.gap!==undefined)e.gap=it.gap;if(it.tx&&it.tx.length)e.tx=JSON.parse(JSON.stringify(it.tx));x+=w+300;rowH=Math.max(rowH,hh)})}
+async function importSheet(file){let rows;
+ try{rows=/\.xlsx$/i.test(file.name)?await xlsxRows(await file.arrayBuffer()):csvRows(await file.text())}catch(e){return say('Nie udało się odczytać „'+file.name+'”: '+(e.message||e)+'.')}
+ const r=rowsToElements(rows);if(r.err)return say(r.err);
+ showImport(file.name,r)}
+// tabela podsumowania importu: każdy wiersz można odznaczyć przed dodaniem na plan
+let imp=null;
+function showImport(name,r){imp={r,chk:r.out.map(()=>true),name};renderImport();$('#iw').hidden=false}
+function renderImport(){const{r,chk,name}=imp;
+ $('#iws').innerHTML='Plik „'+esc(name)+'”: poprawnych wierszy: <b>'+r.out.length+'</b>, pominiętych automatycznie: <b>'+r.bad.length+'</b>. Odznacz wiersze, których nie chcesz dodawać.';
+ let t='<table><thead><tr><th><input type="checkbox" id="iwa" data-all="1" aria-label="Zaznacz lub odznacz wszystkie"></th><th>Wiersz</th><th>Nazwa</th><th>Wymiary [mm]</th><th>Start</th><th>Koniec</th><th>Odstęp [mm]</th></tr></thead><tbody>'
+  +r.out.map((it,i)=>`<tr class="${chk[i]?'':'off'}"><td><input type="checkbox" data-i="${i}"${chk[i]?' checked':''} aria-label="Dodaj ${escA(it.name)}"></td><td>${it.rn}</td><td>${esc(it.name)}</td><td>${esc(it.dim)}</td><td>${pl(it.s)}</td><td>${pl(it.f)}</td><td>${it.gap===undefined?'–':fmt(it.gap)}</td></tr>`).join('')+'</tbody></table>';
+ if(r.bad.length)t+='<div class="hh" style="margin-top:12px">Pominięte automatycznie ('+r.bad.length+')</div><ul>'+r.bad.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+ $('#iwb').innerHTML=t;updImport()}
+function updImport(){const s=imp.chk.filter(Boolean).length,a=$('#iwa');$('#iwo').textContent='Dodaj zaznaczone ('+s+')';$('#iwo').disabled=s==0;
+ if(a){a.checked=s==imp.chk.length&&s>0;a.indeterminate=s>0&&s<imp.chk.length}}
+$('#iwb').onchange=e=>{const t=e.target;if(!imp||!t.dataset)return;
+ if(t.dataset.all!==undefined){imp.chk=imp.chk.map(()=>t.checked);renderImport();return}
+ if(t.dataset.i!==undefined){imp.chk[+t.dataset.i]=t.checked;const tr=t.closest&&t.closest('tr');if(tr)tr.classList.toggle('off',!t.checked);updImport()}};
+$('#iwo').onclick=()=>{if(!imp)return;const list=imp.r.out.filter((_,i)=>imp.chk[i]),skipped=imp.r.out.length-list.length,bad=imp.r.bad.length;if(!list.length)return;
+ $('#iw').hidden=true;imp=null;placeAll(list);sel=els[els.length-1].id;selO=null;all();
+ say('Zaimportowano elementów: '+list.length+(skipped?', odznaczono w podsumowaniu: '+skipped:'')+(bad?', pominięto automatycznie: '+bad:'')+'.')};
+$('#iwc').onclick=$('#iwx').onclick=()=>{$('#iw').hidden=true;imp=null;say('Import anulowany.')};
+addEventListener('keydown',e=>{if(e.key=='Escape'&&!$('#iw').hidden)$('#iwc').onclick()});
+$('#bZ').onclick=()=>pick(importSheet,'xl');
+// ---- eksport do PDF: A3 poziomo, jedna strona na dzień, jedna skala dla wszystkich stron (dopasowana do hali) ----
+function pdfExtent(){let b=hall.length?bbox(hall).slice():null;
+ const add=(x0,y0,x1,y1)=>{if(!b)b=[x0,y0,x1,y1];else{b[0]=Math.min(b[0],x0);b[1]=Math.min(b[1],y0);b[2]=Math.max(b[2],x1);b[3]=Math.max(b[3],y1)}};
+ obs.forEach(o=>{const q=bbox([{c:1,p:o.p}]);add(q[0],q[1],q[2],q[3])});
+ els.forEach(e=>[e,...(e.hist||[])].forEach(g=>{const r=g.rot*Math.PI/180,co=Math.cos(r),si=Math.sin(r);let a=1e18,c=1e18,z=-1e18,w=-1e18;
+  e.sh.forEach(s=>s.p.forEach(([x,y])=>{const X=x*co-y*si+g.x,Y=x*si+y*co+g.y;a=Math.min(a,X);z=Math.max(z,X);c=Math.min(c,Y);w=Math.max(w,Y)}));if(a<1e17)add(a,c,z,w)}));
+ cranes.forEach(c=>{const q=bbox(craneWorld(c));if(q[0]<1e17)add(q[0],q[1],q[2],q[3]);add(c.x,c.y,c.x,c.y)});if(!b)b=[0,0,20000,10000];const mx=(b[2]-b[0])*.02||100,my=(b[3]-b[1])*.02||100;return[b[0]-mx,b[1]-my,b[2]+mx,b[3]+my]}
+// dni, które trafiają do PDF: tylko te z zakresu, które są datą rozpoczęcia lub zakończenia któregokolwiek elementu (także części elementu złożonego) albo zawierają dźwigi
+function pdfDays(from,to){const s=new Set();
+ els.forEach(e=>{s.add(toD(e.start));s.add(toD(e.end));if(isComp(e))e.parts.forEach(p=>{s.add(toD(p.start));s.add(toD(p.end))})});
+ cranes.forEach(c=>s.add(toD(c.day)));
+ return[...s].filter(d=>d>=from&&d<=to).sort((a,b)=>a-b)}
+function pdfHtml(from,to){
+ const ex=pdfExtent(),W=ex[2]-ex[0],H=ex[3]-ex[1],keep=day,days=pdfDays(from,to),n=days.length,r1=v=>Math.round(v*10)/10;
+ let maxAct=0;try{for(const d of days){day=d;maxAct=Math.max(maxAct,els.filter(active).length)}}finally{day=keep}
+ const LW=maxAct>30?150:80,DW=400-LW-6-1,DH=258-1,sc=Math.min(DW/W,DH/H),fs=3.2/sc;   // sc = mm na papierze na 1 mm rysunku
+ const pth=sh=>sh.map(s=>'M'+s.p.map(q=>r1(q[0])+' '+r1(q[1])).join('L')+(s.c?'Z':'')).join('');
+ const proj=(file?base(file):'Projekt bez nazwy').replace(/\.json$/i,'');
+ const used=[...new Set(obs.map(o=>o.type||'inne'))];
+ const lineXY=lineAt;
+ const svgTx=t=>t.s.split('\n').map((ln,i)=>{const[x,y]=lineXY(t,i);return'<text transform="translate('+r1(x)+' '+r1(y)+') rotate('+r1(t.rot)+') scale('+(Math.round(t.fx*1000)/1000)+' -1)" font-size="'+r1(t.h*CAPK)+'" text-anchor="'+['start','middle','end'][t.ha]+'" dy="'+r1(([0,0,.5,1][t.va]||0)*t.h)+'" fill="'+t.col+'">'+esc(ln)+'</text>'}).join('');
+ const stTx=worldTexts().filter(t=>t.k=='hala'||t.k=='przeszkody').map(svgTx).join('');
+ let defs='<svg width="0\" height="0" style="position:absolute" xmlns="http://www.w3.org/2000/svg"><defs><g id="pdf-hall"><path d="'+pth(hall)+'" fill="none" stroke="#51606b" stroke-width="1.6" vector-effect="non-scaling-stroke"/></g><g id="pdf-obs">'
+  +obs.map(o=>'<path d="'+pth([{c:1,p:o.p}])+'" fill="'+otc(o)+'" fill-opacity=".55" stroke="'+otc(o)+'" stroke-width="1.2" vector-effect="non-scaling-stroke"/>').join('')+'</g><g id="pdf-tx">'+stTx+'</g></defs></svg>';
+ const pages=[];
+ try{for(const d of days){day=d;const act=els.filter(active);
+  const paths=act.map(e=>'<path d="'+pth(exportShapes(e))+'" fill="'+e.col+'" fill-opacity=".28" stroke="'+e.col+'" stroke-width="1.4" vector-effect="non-scaling-stroke"/>').join('');
+  const labels=act.map(e=>{const g=seg(e),la=labelPt(e.sh),rr=g.rot*Math.PI/180,x=la[0]*Math.cos(rr)-la[1]*Math.sin(rr)+g.x,y=la[0]*Math.sin(rr)+la[1]*Math.cos(rr)+g.y;
+   return '<text transform="translate('+r1(x)+' '+r1(y)+') scale(1 -1)" font-size="'+r1(fs)+'" text-anchor="middle" dominant-baseline="central" fill="#1c2a35" stroke="#fff" stroke-width="'+r1(fs*.22)+'" paint-order="stroke" stroke-linejoin="round">'+esc(e.name)+'</text>'}).join('');
+  const crs=cranes.filter(c=>c.day==fromD(d));
+  const dtx=worldTexts().filter(t=>t.k=='elementy'||t.k=='dzwigi').map(svgTx).join('');
+  const cpaths=crs.map(c=>'<circle cx="'+r1(c.x)+'" cy="'+r1(c.y)+'" r="'+r1(c.r)+'" fill="'+CRC+'" fill-opacity=".05" stroke="'+CRC+'" stroke-width="1.2" stroke-dasharray="7 5" vector-effect="non-scaling-stroke"/><path d="'+pth(craneWorld(c))+'" fill="'+CRC+'" fill-opacity=".3" stroke="'+CRC+'" stroke-width="1.6" vector-effect="non-scaling-stroke"/>').join('');
+  const clabels=crs.map(c=>'<text transform="translate('+r1(c.x)+' '+r1(c.y)+') rotate('+r1(rdAng(c.rot))+') scale(1 -1)" font-size="'+r1(fs)+'" text-anchor="middle" dy="'+r1(-fs*.9)+'" fill="'+CRC+'" stroke="#fff" stroke-width="'+r1(fs*.22)+'" paint-order="stroke" stroke-linejoin="round">'+esc(c.name)+'</text>').join('');
+  const crl=crs.length?'<div class="lh2" style="margin-top:4mm">Dźwigi na ten dzień ('+crs.length+')</div>'+crs.map(c=>'<div class="li"><i style="background:'+CRC+'55;border-color:'+CRC+';border-radius:50%"></i><div><b>'+esc(c.name)+'</b><small>promień zasięgu '+fmt(c.r)+' mm</small></div></div>').join(''):'';
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width=\"'+DW+'mm" height="'+DH+'mm" viewBox="'+r1(ex[0])+' '+r1(-ex[3])+' '+r1(W)+' '+r1(H)+'" preserveAspectRatio="xMidYMid meet"><g transform="scale(1 -1)"><use href="#pdf-hall"/><use href="#pdf-obs"/><use href="#pdf-tx"/>'+paths+cpaths+labels+clabels+dtx+'</g></svg>';
+  const lg='<div class="lh2">Legenda</div><div class="lk"><svg width="9mm" height="3mm" viewBox="0 0 9 3"><path d="M0 1.5H9" stroke="#51606b" stroke-width=".5"/></svg>obrys hali</div>'
+   +used.map(t=>{const ot=typeDef(t);return'<div class="lk"><i style="background:'+otc({type:t})+'88;border-color:'+otc({type:t})+'"></i>przeszkoda: '+esc(ot[1])+'</div>'}).join('')
+   +'<div class="lh2">Elementy w produkcji ('+act.length+')</div><div class="els'+(act.length>30?' two':'')+'">'+(act.length?act.map(e=>{const[gw,gh]=gab(e.sh);return'<div class="li"><i style="background:'+e.col+'55;border-color:'+e.col+'"></i><div><b>'+esc(e.name)+'</b><small>'+pl(e.start)+' – '+pl(e.end)+' · '+fmt(gw)+' × '+fmt(gh)+' mm</small></div></div>'}).join(''):'<div class="no">Brak elementów w produkcji w tym dniu.</div>')+'</div>'+crl;
+  const dt=new Date(d*864e5).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+  pages.push('<section class="pg"><header class="hd"><div><h1>Plan produkcji</h1><div class="sub">'+esc(proj)+'</div></div><div class="dt">'+esc(dt.charAt(0).toUpperCase()+dt.slice(1))+'<small>'+pl(fromD(d))+'</small></div><div class="pn">Strona '+(days.indexOf(d)+1)+' z '+n+'<small>skala 1:'+Math.round(1/sc)+' · jednostki: mm</small></div></header><div class="bd"><div class="dr">'+svg+'</div><aside class="lg" style="width:'+LW+'mm">'+lg+'</aside></div></section>')}}finally{day=keep}
+ const css='@page{size:420mm 297mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:"Segoe UI",Arial,sans-serif;color:#1c2a35;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+  +'.pg{width:420mm;height:296.5mm;padding:10mm;overflow:hidden;break-after:page;page-break-after:always}.pg:last-child{break-after:auto;page-break-after:auto}'
+  +'.hd{height:16mm;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:.4mm solid #51606b;margin-bottom:3mm}.hd h1{font-size:6.5mm;margin:0;line-height:1.1}.sub{font-size:3.2mm;color:#66737d}'
+  +'.dt{font-size:6mm;font-weight:600;text-align:center}.dt small,.pn small{display:block;font-size:3.2mm;font-weight:400;color:#66737d}.pn{text-align:right;font-size:3.6mm}'
+  +'.bd{display:flex;gap:6mm}.dr{width:'+(DW+1)+'mm;height:'+(DH+1)+'mm;border:.3mm solid #c5ced4;padding:.5mm}.lg{font-size:3.2mm;overflow:hidden;max-height:'+(DH+1)+'mm}'
+  +'.lh2{font-weight:700;margin:0 0 2mm;padding-top:1mm}.lk{display:flex;align-items:center;gap:2mm;margin-bottom:1.6mm;font-size:3mm}.lk svg{flex:none}'
+  +'i{display:inline-block;flex:none;width:4mm;height:4mm;border:.35mm solid;border-radius:.6mm}.lk+.lh2{margin-top:4mm}.li{display:flex;gap:2mm;align-items:flex-start;margin-bottom:1.8mm;break-inside:avoid}.li b{display:block;font-size:3.3mm;line-height:1.15}.li small{display:block;font-size:2.7mm;color:#66737d}'
+  +'.els.two{column-count:2;column-gap:4mm}.no{color:#66737d}';
+ return'<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>Plan produkcji '+fromD(from)+' – '+fromD(to)+'</title><style>'+css+'</style></head><body>'+defs+pages.join('')+'</body></html>'}
+function printHtml(html){const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.append(f);f.onload=()=>{f.contentWindow.focus();f.contentWindow.print()};f.srcdoc=html}
+async function runPdf(from,to){const n=pdfDays(from,to).length;
+ if(!n)return say('W wybranym zakresie nie ma dni, które są datą rozpoczęcia lub zakończenia elementu albo zawierają dźwigi, więc nie ma czego eksportować.');
+ if(n>60&&!confirm('Eksport obejmie '+n+' stron (po jednej na dzień z datą rozpoczęcia lub zakończenia albo z dźwigami). Kontynuować?'))return say('Eksport do PDF anulowany.');
+ say('Generuję PDF: '+n+' '+(n==1?'strona':(n%10>=2&&n%10<=4&&!(n%100>=12&&n%100<=14))?'strony':'stron')+'…');await new Promise(r=>setTimeout(r,30));
+ const html=pdfHtml(from,to),name='plan_produkcji_'+fromD(from)+'_'+fromD(to)+'.pdf';
+ if(window.api&&api.exportPdf){const r=await api.exportPdf({html,name});
+  if(r&&r.path)say('Zapisano PDF ('+n+' str., A3 poziomo): '+r.path);else if(r&&r.canceled)say('Eksport do PDF anulowany.');else say('Nie udało się zapisać PDF: '+((r&&r.error)||'nieznany błąd')+'.')}
+ else{printHtml(html);say('Otwarto okno drukowania. Wybierz „Zapisz jako PDF”, papier A3, orientacja pozioma, bez marginesów.')}}
+$('#bG').onclick=()=>{if(!els.length)return say('Brak elementów do wyeksportowania.');
+ const ds=[...els.flatMap(e=>[toD(e.start),toD(e.end),...(e.hist||[]).map(k=>toD(k.d))]),...cranes.map(c=>toD(c.day))],a=Math.min(...ds),b=Math.max(...ds);
+ askDlg({title:'Eksport do PDF',intro:'Na osobną stronę A3 (poziomo) trafia każdy dzień z zakresu, który jest datą rozpoczęcia lub zakończenia któregokolwiek elementu (także części elementu złożonego) albo zawiera dźwigi: nagłówek z datą, plan z etykietami elementów i legenda, w jednej skali dopasowanej do hali. Pozostałe dni są pomijane.',
+  fields:[{id:'a',label:'Od dnia',type:'date',value:fromD(a)},{id:'b',label:'Do dnia',type:'date',value:fromD(b)}],ok:'Eksportuj',
+  onOk:v=>{if(!v.a||!v.b)return'Podaj obie daty.';if(v.b<v.a)return'Data końcowa nie może być wcześniejsza niż początkowa.';
+   const f=toD(v.a),t=toD(v.b);if(t-f+1>400)return'Zakres jest zbyt duży (maksymalnie 400 dni).';
+   if(!pdfDays(f,t).length)return'W tym zakresie nie ma dnia z datą rozpoczęcia lub zakończenia elementu ani z dźwigami. Zmień zakres.';
+   setTimeout(()=>runPdf(f,t),0)}})};
+$('#bV').onclick=()=>setEditV(!editV);addEventListener('keydown',e=>{if(e.key=='Escape'&&editV)setEditV(false)});
+$('#bDz').onclick=()=>{const w=$('#xw');w.hidden=!w.hidden;if(!w.hidden)renderXW()};$('#xwx').onclick=()=>{$('#xw').hidden=true};$('#xwa').onchange=e=>{craneAll=e.target.checked;renderXW()};
+$('#cwc').onclick=()=>pickCad(async(t,n)=>{const s=prep(parseCad(t));if(!s.length)return say('Plik '+n+' nie zawiera obsługiwanych obiektów.');await askLibCrane(n.replace(/\.(dxf|dwg)$/i,''),s)});
+// ---- „Otwórz ostatnie”: 10 ostatnio otwartych lub zapisanych projektów (lista w pliku w folderze danych użytkownika, tylko wersja desktopowa) ----
+let recentRows=[];
+const whenTxt=t=>{const d=new Date(t),n=new Date(),p2=x=>String(x).padStart(2,'0'),hm=p2(d.getHours())+':'+p2(d.getMinutes()),y=new Date(n),same=(a,b)=>a.getFullYear()==b.getFullYear()&&a.getMonth()==b.getMonth()&&a.getDate()==b.getDate();
+ y.setDate(n.getDate()-1);return same(d,n)?'dziś '+hm:same(d,y)?'wczoraj '+hm:p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+hm};
+async function renderRecent(){recentRows=(await api.recentList())||[];const B=$('#rwb');
+ B.innerHTML=recentRows.length?recentRows.map((r,i)=>`<div class="rr${r.exists?'':' miss'}"><span class="rn2">${(i+1)%10}</span><div class="tx"><b>${esc(base(r.path).replace(/\.json$/i,''))}</b><small title="${escA(r.path)}">${esc(r.path)}</small><small>${r.exists?whenTxt(r.t):'brak pliku (przeniesiony lub usunięty)'}</small></div><button data-a="open" data-i="${i}"${r.exists?'':' disabled'}>Otwórz</button><button data-a="del" data-i="${i}" title="Usuń z listy" aria-label="Usuń z listy">×</button></div>`).join('')
+  :'<p class="emp">Brak ostatnich projektów. Pojawią się tu projekty otwarte lub zapisane w programie.</p>';
+ $('#rwc').disabled=!recentRows.length}
+async function openRecent(i){const r=recentRows[i];if(!r)return;
+ if(!r.exists)return say('Nie znaleziono pliku „'+base(r.path)+'”. Mógł zostać przeniesiony lub usunięty – usuń go z listy przyciskiem ×.');
+ if(!okDiscard())return;const x=await api.recentOpen(r.path);
+ if(!x||x.error){const er=x&&x.error;say(er=='missing'?'Nie znaleziono pliku „'+base(r.path)+'”. Mógł zostać przeniesiony lub usunięty.':er=='not-project'?'Plik „'+base(r.path)+'” nie jest projektem zapisanym przez tę aplikację.':'Nie udało się otworzyć „'+base(r.path)+'”: '+(er||'nieznany błąd')+'.');await renderRecent();return}
+ $('#rw').hidden=true;load(x.text,base(x.path),x.path)}
+$('#bRc').onclick=async()=>{if(!(window.api&&api.recentList))return say('Lista ostatnich projektów działa w wersji desktopowej (przeglądarka nie ma dostępu do ścieżek plików).');
+ const w=$('#rw');w.hidden=!w.hidden;if(!w.hidden)await renderRecent()};
+$('#rwx').onclick=()=>{$('#rw').hidden=true};
+$('#rwb').onclick=ev=>{const t=ev.target.closest&&ev.target.closest('[data-a]');if(!t)return;const i=+t.dataset.i;
+ if(t.dataset.a=='open')openRecent(i);else if(t.dataset.a=='del'&&recentRows[i])api.recentRemove(recentRows[i].path).then(renderRecent)};
+$('#rwc').onclick=async()=>{if(!recentRows.length||!confirm('Wyczyścić listę ostatnich projektów? Same pliki projektów zostaną na dysku.'))return;await api.recentClear();await renderRecent()};
+addEventListener('keydown',e=>{if($('#rw').hidden)return;if(e.key=='Escape'){$('#rw').hidden=true;return}
+ if(/^[0-9]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey&&!e.altKey){const i=e.key=='0'?9:+e.key-1;if(recentRows[i]){e.preventDefault();openRecent(i)}}});
+addEventListener('mousedown',e=>{const t=e.target;if(!$('#rw').hidden&&t&&t.closest&&!t.closest('#rw')&&!t.closest('#bRc'))$('#rw').hidden=true});
+// ---- teksty z DXF: tylko do wyświetlania (bez edycji); rozmiar, obrót i położenie względem punktu wstawienia z rysunku; ukrywanie zbiorcze i dla elementu/dźwigu ----
+const okTx=t=>!!t&&typeof t.s=='string'&&isFinite(t.x)&&isFinite(t.y)&&t.h>0;
+const lineAt=(t,i)=>{const r=t.rot*Math.PI/180,lh=t.h*5/3;return[t.x+i*lh*Math.sin(r),t.y-i*lh*Math.cos(r)]};   // kolejne wiersze tekstu wielowierszowego pod pierwszym
+const dxfStr=s=>s.replace(/[^\x20-\x7e]/g,c=>'\\U+'+c.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'));
+function worldTexts(){if(txHideAll)return[];const out=[],add=(k,t,col)=>{if(okTx(t))out.push({k,s:t.s,x:t.x,y:t.y,h:t.h,rot:t.rot||0,ha:t.ha||0,va:t.va||0,fx:t.fx||1,col})};
+ hallTx.forEach(t=>add('hala',t,'#44525c'));obs.forEach(o=>(o.tx||[]).forEach(t=>add('przeszkody',t,'#44525c')));
+ const put=(k,list,g,col)=>{const r=g.rot*Math.PI/180,co=Math.cos(r),si=Math.sin(r);list.forEach(t=>add(k,Object.assign({},t,{x:t.x*co-t.y*si+g.x,y:t.x*si+t.y*co+g.y,rot:(t.rot||0)+g.rot}),col))};
+ els.filter(active).forEach(e=>{if(e.txHide)return;const L=isComp(e)?e.parts.filter(partOn).flatMap(p=>p.tx||[]):(e.tx||[]);if(L.length)put('elementy',L,seg(e),e.col)});
+ cranes.filter(c=>c.day==fromD(day)).forEach(c=>{if(c.tx&&c.tx.length&&!c.txHide)put('dzwigi',c.tx,c,CRC)});
+ return out}
+function drawTexts(){const L=worldTexts();if(!L.length)return;
+ for(const t of L){const px=t.h*V.k;if(px<3||px>3000)continue;const[x,y]=P(t.x,t.y);
+  cx.save();cx.translate(x,y);cx.rotate(-t.rot*Math.PI/180);if(t.fx!==1)cx.scale(t.fx,1);cx.font=(px*CAPK)+'px "Segoe UI",Arial,sans-serif';cx.fillStyle=t.col;
+  cx.textAlign=['left','center','right'][t.ha]||'left';cx.textBaseline='alphabetic';
+  const off=([0,0,.5,1][t.va]||0)*px;   // pionowe wyrównanie liczone od linii bazowej względem wysokości wielkich liter
+  t.s.split('\n').forEach((ln,i)=>cx.fillText(ln,0,off+i*px*5/3));cx.restore()}}
+function setTxBtn(){lab('bTx',txHideAll?'Teksty ukryte':'Teksty',txHideAll?'Wszystkie teksty z DXF są ukryte – kliknij, aby je pokazać':'Ukryj wszystkie teksty z DXF (hala, przeszkody, elementy, dźwigi)',txHideAll)}
+$('#bTx').onclick=()=>{txHideAll=!txHideAll;setTxBtn();draw();chk();say(txHideAll?'Ukryto wszystkie teksty z DXF (także w eksportach). Pojedyncze elementy i dźwigi mają własne przyciski ukrywania na kartach.':'Pokazano teksty z DXF (poza tymi, które ukryto osobno dla elementu lub dźwigu).')};
+// ---- przesuwanie okien pomocniczych za pasek tytułu; położenie jest zapamiętywane na komputerze, dwuklik na pasku przywraca położenie domyślne ----
+const WK='planer.okna';
+const winPos=()=>{try{return JSON.parse(localStorage.getItem(WK)||'{}')||{}}catch(e){return{}}};
+const saveWinPos=o=>{try{localStorage.setItem(WK,JSON.stringify(o))}catch(e){}};
+const DRAG_WINS=[['ow','oh','main'],['kw','kh','main'],['lw','lwh'],['cw','cwh'],['xw','xwh'],['tw','twh'],['rw','rwh'],['dw','dwh'],['qd','qdh'],['iw','iwh']];
+function dragWin(id,hid,parent){const w=$('#'+id),hd=$('#'+hid);if(!w||!hd)return;hd.style.cursor='move';hd.style.userSelect='none';
+ // okna „main” są położone względem obszaru podglądu, pozostałe względem całego okna programu
+ const area=()=>{if(parent){const r=$(parent).getBoundingClientRect();return{left:r.left,top:r.top,width:r.width,height:r.height}}return{left:0,top:0,width:innerWidth,height:innerHeight}};
+ const clamp=(l,t,pr)=>{const ww=(w.getBoundingClientRect().width)||300;return[Math.max(80-ww,Math.min(l,pr.width-80)),Math.max(0,Math.min(t,pr.height-40))]};
+ const put=(l,t)=>{w.style.left=Math.round(l)+'px';w.style.top=Math.round(t)+'px';w.style.right='auto';w.style.bottom='auto';w.style.transform='none'};
+ const onCtl=e=>e.target&&e.target.closest&&e.target.closest('button,input,select,label,a');
+ let d=null;
+ hd.onmousedown=e=>{if(e.button!==undefined&&e.button!==0)return;if(onCtl(e))return;const r=w.getBoundingClientRect(),pr=area();d={dx:e.clientX-r.left,dy:e.clientY-r.top,pr};put(r.left-pr.left,r.top-pr.top);e.preventDefault()};
+ addEventListener('mousemove',e=>{if(!d)return;const[l,t]=clamp(e.clientX-d.dx-d.pr.left,e.clientY-d.dy-d.pr.top,d.pr);put(l,t)});
+ addEventListener('mouseup',()=>{if(!d)return;d=null;const o=winPos();o[id]={l:parseFloat(w.style.left),t:parseFloat(w.style.top)};saveWinPos(o)});
+ hd.ondblclick=e=>{if(onCtl(e))return;['left','top','right','bottom','transform'].forEach(k=>{w.style[k]=''});const o=winPos();delete o[id];saveWinPos(o)};
+ addEventListener('resize',()=>{if(!w.style.left)return;const[l,t]=clamp(parseFloat(w.style.left),parseFloat(w.style.top),area());put(l,t)});
+ const s=winPos()[id];if(s&&isFinite(s.l)&&isFinite(s.t)){const pr=area();put(Math.max(-220,Math.min(s.l,pr.width-120)),Math.max(0,Math.min(s.t,pr.height-40)))}}
+DRAG_WINS.forEach(([a,b,c])=>dragWin(a,b,c));
+// ---- cofanie i ponawianie zmian w projekcie: zrzuty stanu (plan hali, elementy, przeszkody, dźwigi, pomiary, odstęp domyślny, kolory typów) ----
+const H={u:[],r:[],cur:null,t:0,lk:'',bytes:0};
+const DN={hall:'plan hali',els:'elementy',obs:'przeszkody',cranes:'dźwigi',meas:'pomiary',margin:'domyślny odstęp',otCol:'kolory typów przeszkód',otNoColl:'wykrywanie kolizji przeszkód',otTypes:'typy przeszkód',hallTx:'teksty hali'};
+const dnames=k=>k.map(x=>DN[x]).join(', '),klen=(s,k)=>k.reduce((a,x)=>a+s[x].length,0);
+function docNow(){const n={hall:JSON.stringify(hall),els:JSON.stringify(els),obs:JSON.stringify(obs),cranes:JSON.stringify(cranes),meas:JSON.stringify(meas),margin:String(margin),otCol:JSON.stringify(otCol),otNoColl:JSON.stringify(otNoColl),otTypes:JSON.stringify(otTypes),hallTx:JSON.stringify(hallTx),uid};
+ if(H.cur)for(const k in DN)if(n[k]===H.cur[k])n[k]=H.cur[k];return n}   // niezmienione części współdzielą pamięć
+function histRecord(){if(!H.cur)return;const n=docNow(),d=Object.keys(DN).filter(k=>n[k]!==H.cur[k]);if(!d.length)return;
+ const now=Date.now(),key=d.join();
+ // szybkie zmiany tego samego ustawienia (wpisywanie odstępu, wybieranie koloru) to jeden krok
+ if(H.u.length&&d.length==1&&(key=='margin'||key=='otCol')&&key==H.lk&&now-H.t<700){H.cur=n;H.t=now;H.r=[];updUndo();return}
+ H.u.push({s:H.cur,k:d});H.bytes+=klen(H.cur,d);H.cur=n;H.t=now;H.lk=key;H.r=[];
+ while(H.u.length>100||(H.bytes>6e7&&H.u.length>1)){const o=H.u.shift();H.bytes-=klen(o.s,o.k)}
+ updUndo()}
+function updUndo(){const bn=$('#bN'),bj=$('#bJ');if(!bn||!bj)return;const u=H.u[H.u.length-1],r=H.r[H.r.length-1];bn.disabled=!u;bj.disabled=!r;
+ const tn=u?'Cofnij zmianę: '+dnames(u.k)+' (Ctrl+Z)':'Nie ma zmian do cofnięcia (Ctrl+Z)',tj=r?'Ponów zmianę: '+dnames(r.k)+' (Ctrl+Y)':'Nie ma zmian do ponowienia (Ctrl+Y)';
+ bn.title=tn;bn.setAttribute('aria-label',tn);bj.title=tj;bj.setAttribute('aria-label',tj)}
+function applyDoc(s){hall=JSON.parse(s.hall);els=JSON.parse(s.els);obs=JSON.parse(s.obs);cranes=JSON.parse(s.cranes);meas=JSON.parse(s.meas);margin=+s.margin;otCol=JSON.parse(s.otCol);otNoColl=JSON.parse(s.otNoColl);otTypes=JSON.parse(s.otTypes);hallTx=JSON.parse(s.hallTx);if(!allTypes().some(t=>t[0]==drawType))drawType='inne';uid=Math.max(uid,s.uid);$('#mg').value=margin;
+ if(sel&&!els.some(e=>e.id==sel))sel=null;if(selO&&!obs.some(o=>o.id==selO))selO=null;if(selC&&!cranes.some(c=>c.id==selC))selC=null;mp=null}
+function undoDo(){if(!H.u.length)return say('Nie ma zmian do cofnięcia.');
+ const e=H.u.pop();H.bytes-=klen(e.s,e.k);H.r.push({s:H.cur,k:e.k});H.cur=e.s;applyDoc(e.s);H.cur=docNow();H.lk='';updUndo();all();
+ say('Cofnięto zmianę: '+dnames(e.k)+'. Pozostało do cofnięcia: '+H.u.length+'; Ctrl+Y ponawia.')}
+function redoDo(){if(!H.r.length)return say('Nie ma zmian do ponowienia.');
+ const e=H.r.pop();H.u.push({s:H.cur,k:e.k});H.bytes+=klen(H.cur,e.k);H.cur=e.s;applyDoc(e.s);H.cur=docNow();H.lk='';updUndo();all();
+ say('Ponowiono zmianę: '+dnames(e.k)+'. Pozostało do ponowienia: '+H.r.length+'.')}
+const idle=()=>!drag&&$('#qd').hidden&&$('#iw').hidden&&$('#dw').hidden;
+function undoKey(){if(!idle())return;if(mode=='obs'&&dpts.length){dpts.pop();draw();return say('Usunięto ostatni wierzchołek rysowanej przeszkody.')}undoDo()}
+function redoKey(){if(idle())redoDo()}
+$('#bN').onclick=undoDo;$('#bJ').onclick=redoDo;
+H.cur=docNow();updUndo();
+applyTB();setLock();setTxBtn();all();fit();draw();libLoad();
+</script></body></html>

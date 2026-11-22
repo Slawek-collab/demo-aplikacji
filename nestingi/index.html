@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-src 'self' about: data: blob:">
+  <title>Nesting profili</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="tb-group" id="toolbarButtons"></div>
+    <div class="meta">
+      <label>Nazwa zlecenia<input id="metaName" placeholder="np. Hala B – rygle"></label>
+      <label>Numer<input id="metaNumber" placeholder="np. ZP-2026/114"></label>
+      <label>Opracował<input id="metaAuthor"></label>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="parts" class="active">1. Detale</button>
+    <button data-tab="cart">2. Koszyk</button>
+    <button data-tab="stock">3. Magazyn</button>
+    <button data-tab="nest">4. Nesting</button>
+    <button data-tab="report">5. Raport</button>
+    <button data-tab="archive">6. Baza nestingów</button>
+  </nav>
+
+  <main>
+    <section id="tab-parts" class="tab active">
+      <div class="split">
+        <div class="pane grow">
+          <div class="pane-head">
+            <h2>Wszystkie detale projektu</h2>
+            <div class="actions">
+              <button data-act="part-add" class="primary">+ Dodaj detal</button>
+              <button data-act="part-dup">Duplikuj</button>
+              <button data-act="part-import">Import z Excela…</button>
+              <button data-act="part-clear">Wyczyść listę</button>
+              <button data-act="cart-all" class="primary">Wszystkie pozostałe → koszyk</button>
+            </div>
+          </div>
+          <div class="warnbox codewarn hidden"></div>
+          <div class="table-wrap" id="partsWrap"></div>
+        </div>
+        <aside class="pane editor" id="partEditor"></aside>
+      </div>
+    </section>
+
+    <section id="tab-cart" class="tab">
+      <div class="pane grow">
+        <div class="pane-head">
+          <h2>Koszyk – detale do bieżącego nestingu</h2>
+          <div class="actions">
+            <button data-act="cart-clear">Opróżnij koszyk</button>
+            <button data-act="check">Sprawdź materiał w bazie</button>
+            <button data-act="nest" class="primary">Uruchom nesting</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="cartWrap"></div>
+        <div class="pane-head sub"><h2>Dostępność materiału dla koszyka</h2></div>
+        <div id="availability" class="table-wrap short"></div>
+      </div>
+    </section>
+
+    <section id="tab-stock" class="tab">
+      <nav class="subtabs" id="stockTabs">
+        <button data-sub="bars" class="active">Sztangi w magazynie <span class="cnt" id="cntBars"></span></button>
+        <button data-sub="rem">Odpady użytkowe <span class="cnt" id="cntRem"></span></button>
+        <button data-sub="prof">Katalog profili <span class="cnt" id="cntProf"></span></button>
+      </nav>
+      <div class="warnbox codewarn hidden"></div>
+      <div class="pane subpane active" data-sub="bars"><div class="pane-head"><h2>Sztangi w magazynie – partie (Nr mag.)</h2><div class="actions"><label class="check" style="margin:0"><input type="checkbox" id="lotEmpty" style="width:auto"> pokaż wyczerpane</label><button data-act="lot-import" title="Lista przyjęć magazynowych z Excela – partie już zaimportowane są pomijane">Import przyjęć z Excela…</button><button data-act="bar-add" class="primary">Przyjmij materiał…</button></div></div><div class="poolinfo hidden" id="poolInfo"></div><div class="table-wrap" id="barsWrap"></div></div>
+      <div class="pane subpane" data-sub="rem"><div class="pane-head"><h2>Odpady użytkowe</h2><div class="actions"><button data-act="rem-add" class="primary">+ Dodaj</button></div></div><div class="table-wrap" id="remWrap"></div></div>
+      <div class="pane subpane" data-sub="prof"><div class="pane-head"><h2>Katalog profili</h2><div class="actions"><input id="profFilter" placeholder="filtruj…" class="filter"><button data-act="cat-info" title="Lokalizacja pliku katalogu profili">Plik katalogu…</button><button data-act="prof-add" class="primary">+ Dodaj</button></div></div><div class="table-wrap" id="profWrap"></div></div>
+    </section>
+
+    <section id="tab-nest" class="tab">
+      <div class="split">
+        <aside class="pane options" id="optionsPane"></aside>
+        <div class="pane grow" id="resultPane"></div>
+      </div>
+    </section>
+
+    <section id="tab-report" class="tab">
+      <div class="pane-head">
+        <h2>Raport &nbsp;<select id="reportPick" class="filter" style="width:auto"></select></h2>
+        <div class="actions">
+          <button data-act="pdf" class="primary">Zapisz PDF…</button>
+          <button data-act="csv">Lista cięć CSV…</button>
+        </div>
+      </div>
+      <iframe id="reportFrame" title="Podgląd raportu"></iframe>
+    </section>
+
+    <section id="tab-archive" class="tab">
+      <div class="split">
+        <div class="pane archlist">
+          <div class="pane-head"><h2>Zatwierdzone nestingi</h2></div>
+          <div class="table-wrap" id="archiveList"></div>
+        </div>
+        <div class="pane grow" id="archiveDetail"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="status"><span id="statusLeft"></span><span id="statusRight"></span></footer>
+
+  <div id="modal" class="modal hidden"><div class="modal-box"><h3 id="modalTitle"></h3><div id="modalBody"></div><div class="modal-actions" id="modalActions"></div></div></div>
+  <div id="importDlg" class="modal hidden"><div class="modal-box import-box">
+    <h3>Import detali z Excela</h3>
+    <div id="importBody"></div>
+    <div class="table-wrap imp-prev hidden" id="impPrev"></div>
+    <div class="modal-actions"><span class="hint" id="impFoot" style="margin:0 auto 0 0"></span><button data-imp="cancel">Anuluj</button><button data-imp="go" class="primary" id="impGo" disabled>Importuj</button></div>
+  </div></div>
+  <div id="busy" class="busy hidden"><div>Liczę nesting…</div></div>
+  <datalist id="profileList"></datalist>
+  <datalist id="gradeList"></datalist>
+  <datalist id="codeList"></datalist>
+  <datalist id="lotList"></datalist>
+
+  <script src="browser-shim.js"></script>
+  <script src="core/geometry.js"></script>
+  <script src="core/nesting.js"></script>
+  <script src="core/catalog.js"></script>
+  <script src="core/draw.js"></script>
+  <script src="core/report.js"></script>
+  <script src="core/importmap.js"></script>
+  <script src="xlsx.js"></script>
+  <script src="tableview.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

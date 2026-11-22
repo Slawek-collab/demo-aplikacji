@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Demo aplikacji</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #1d2430; --muted: #5b6575;
+    --line: #dde1e7; --accent: #1f5fbf; --accent-hover: #174a96;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --card: #1d2128; --text: #e7eaef; --muted: #9aa3b2;
+      --line: #2e343e; --accent: #5b9bff; --accent-hover: #82b3ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  main { max-width: 880px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 24px; display: flex; flex-direction: column;
+  }
+  .card h2 { font-size: 20px; margin: 0 0 8px; }
+  .card p { color: var(--muted); margin: 0 0 20px; flex: 1; }
+  .btn {
+    display: inline-block; align-self: flex-start; background: var(--accent); color: #fff;
+    text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 600;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .samples { margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .samples a { color: var(--accent); }
+  .note {
+    margin-top: 32px; padding: 16px 20px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--card); font-size: 14px; color: var(--muted);
+  }
+  .note strong { color: var(--text); }
+  .note ul { margin: 8px 0 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Demo aplikacji</h1>
+  <p class="lead">Wersje pokazowe działające bezpośrednio w przeglądarce. Nie trzeba niczego instalować.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Planer produkcji</h2>
+      <p>Graficzne planowanie produkcji w czasie i przestrzeni: rozmieszczanie elementów na hali, harmonogram, import DXF i eksport PDF.</p>
+      <a class="btn" href="planer/">Otwórz planer</a>
+      <div class="samples">Przykład do importu:
+        <a href="przyklady/szablon_elementow.xlsx" download>szablon_elementow.xlsx</a>,
+        <a href="przyklady/szablon_elementow.csv" download>.csv</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Nesting profili</h2>
+      <p>Optymalizacja cięcia profili stalowych 1D z zazębianiem skośnych końców, magazynem i odpadami użytkowymi.</p>
+      <a class="btn" href="nestingi/">Otwórz nesting</a>
+      <div class="samples">Przykładowy projekt:
+        <a href="przyklady/przyklad.nest" download>przyklad.nest</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="note">
+    <strong>Wersja przeglądarkowa ma kilka ograniczeń względem wersji desktopowej:</strong>
+    <ul>
+      <li>projekty zapisują się jako pobierane pliki, a ustawienia i biblioteki w pamięci tej przeglądarki,</li>
+      <li>PDF tworzy się przez okno drukowania (wybierz „Zapisz jako PDF”),</li>
+      <li>planer nie wczytuje plików DWG (użyj DXF) i nie ma listy ostatnich projektów.</li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,192 @@
+{
+ "app": "nesting-profili",
+ "version": 1,
+ "meta": {
+  "name": "Przykład – rygle i stężenia",
+  "number": "ZP-2026/001",
+  "author": ""
+ },
+ "parts": [
+  {
+   "id": "a",
+   "name": "Rygiel R1",
+   "profile": "HEB200",
+   "grade": "S355",
+   "length": 5980,
+   "qty": 4,
+   "end1": {
+    "type": "square",
+    "angle": 0,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "square",
+    "angle": 0,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "allowRev": true,
+   "allowFlip": true
+  },
+  {
+   "id": "b",
+   "name": "Zastrzał Z1",
+   "profile": "HEB200",
+   "grade": "S355",
+   "length": 2100,
+   "qty": 8,
+   "end1": {
+    "type": "miter",
+    "angle": 45,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "miter",
+    "angle": 45,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "allowRev": true,
+   "allowFlip": true
+  },
+  {
+   "id": "c",
+   "name": "Stężenie S2",
+   "profile": "HEB200",
+   "grade": "S355",
+   "length": 1450,
+   "qty": 6,
+   "end1": {
+    "type": "miter",
+    "angle": 30,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "miter",
+    "angle": 30,
+    "plane": "h",
+    "side": "bottom",
+    "depth": 0
+   },
+   "allowRev": true,
+   "allowFlip": true
+  },
+  {
+   "id": "d",
+   "name": "Słupek SL3",
+   "profile": "HEB200",
+   "grade": "S355",
+   "length": 3200,
+   "qty": 3,
+   "end1": {
+    "type": "square",
+    "angle": 0,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "partial",
+    "angle": 45,
+    "plane": "h",
+    "side": "top",
+    "depth": 80
+   },
+   "allowRev": true,
+   "allowFlip": true
+  },
+  {
+   "id": "e",
+   "name": "Płatew P1",
+   "profile": "IPE200",
+   "grade": "S235",
+   "length": 4480,
+   "qty": 7,
+   "end1": {
+    "type": "square",
+    "angle": 0,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "square",
+    "angle": 0,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "allowRev": true,
+   "allowFlip": true
+  },
+  {
+   "id": "f",
+   "name": "Wymian W1",
+   "profile": "IPE200",
+   "grade": "S235",
+   "length": 1180,
+   "qty": 10,
+   "end1": {
+    "type": "miter",
+    "angle": 45,
+    "plane": "b",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "miter",
+    "angle": 45,
+    "plane": "b",
+    "side": "top",
+    "depth": 0
+   },
+   "allowRev": true,
+   "allowFlip": true
+  },
+  {
+   "id": "g",
+   "name": "Łącznik Ł4",
+   "profile": "IPE200",
+   "grade": "S235",
+   "length": 760,
+   "qty": 5,
+   "end1": {
+    "type": "peak",
+    "angle": 30,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "end2": {
+    "type": "vnotch",
+    "angle": 30,
+    "plane": "h",
+    "side": "top",
+    "depth": 0
+   },
+   "allowRev": true,
+   "allowFlip": true
+  }
+ ],
+ "options": {
+  "kerf": 3,
+  "trimStart": 0,
+  "trimEnd": 0,
+  "minRemnant": 500,
+  "preferRemnants": true,
+  "allowPurchase": true,
+  "purchaseLength": 12000,
+  "timeLimitMs": 1200,
+  "seed": 12345
+ },
+ "result": null,
+ "committedAt": null
+}
